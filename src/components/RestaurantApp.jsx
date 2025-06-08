@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react'
 import InstagramImporter from './InstagramImporter'
 import RestaurantList from './RestaurantList'
 import MapView from './MapView'
+import SearchAndFilter from './SearchAndFilter'
 
 export default function RestaurantApp({ session, supabase }) {
   const [restaurants, setRestaurants] = useState([])
+  const [filteredRestaurants, setFilteredRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('list') // 'list' or 'map'
   const [showImporter, setShowImporter] = useState(false)
@@ -12,6 +14,11 @@ export default function RestaurantApp({ session, supabase }) {
   useEffect(() => {
     fetchRestaurants()
   }, [])
+
+  // Update filtered restaurants when main restaurants list changes
+  useEffect(() => {
+    setFilteredRestaurants(restaurants)
+  }, [restaurants])
 
   const fetchRestaurants = async () => {
     try {
@@ -33,6 +40,17 @@ export default function RestaurantApp({ session, supabase }) {
     }
   }
 
+  // Extract all unique tags from restaurants
+  const getAllTags = () => {
+    const allTags = new Set()
+    restaurants.forEach(savedRec => {
+      if (savedRec.tags) {
+        savedRec.tags.forEach(tag => allTags.add(tag))
+      }
+    })
+    return Array.from(allTags).sort()
+  }
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
   }
@@ -40,6 +58,28 @@ export default function RestaurantApp({ session, supabase }) {
   const handleRestaurantAdded = () => {
     fetchRestaurants()
     setShowImporter(false)
+  }
+
+  const handleRestaurantDelete = async (savedRecId) => {
+    try {
+      const { error } = await supabase
+        .from('saved_recs')
+        .delete()
+        .eq('id', savedRecId)
+        .eq('user_id', session.user.id) // Extra security check
+
+      if (error) throw error
+      
+      // Refresh the restaurant list
+      fetchRestaurants()
+    } catch (error) {
+      console.error('Error deleting restaurant:', error)
+      alert('Failed to delete restaurant. Please try again.')
+    }
+  }
+
+  const handleFilteredResults = (filtered) => {
+    setFilteredRestaurants(filtered)
   }
 
   if (loading) {
@@ -80,12 +120,26 @@ export default function RestaurantApp({ session, supabase }) {
         </button>
       </div>
 
+      {/* Search and Filter - Only show in list view */}
+      {view === 'list' && restaurants.length > 0 && (
+        <div className="search-section">
+          <SearchAndFilter
+            restaurants={restaurants}
+            onFilteredResults={handleFilteredResults}
+            allTags={getAllTags()}
+          />
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="main-content">
         {view === 'list' ? (
-          <RestaurantList restaurants={restaurants} />
+          <RestaurantList 
+            restaurants={filteredRestaurants} // Use filtered results
+            onRestaurantDelete={handleRestaurantDelete}
+          />
         ) : (
-          <MapView restaurants={restaurants} />
+          <MapView restaurants={filteredRestaurants} /> // Also filter map results
         )}
       </main>
 
@@ -98,6 +152,32 @@ export default function RestaurantApp({ session, supabase }) {
           onRestaurantAdded={handleRestaurantAdded}
         />
       )}
+
+      <style jsx>{`
+        .search-section {
+          padding: 0 20px;
+          margin-bottom: 4px;
+        }
+
+        .results-count {
+          padding: 0 20px;
+          margin-bottom: 16px;
+          font-size: 0.9rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        @media (max-width: 640px) {
+          .search-section {
+            padding: 0 16px;
+          }
+
+          .results-count {
+            padding: 0 16px;
+            margin-bottom: 12px;
+          }
+        }
+      `}</style>
     </div>
   )
 } 
