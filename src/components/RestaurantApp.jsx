@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react'
 import InstagramImporter from './InstagramImporter'
 import RestaurantList from './RestaurantList'
 import MapView from './MapView'
+import DiscoverTab from './DiscoverTab'
+import ProfileTab from './ProfileTab'
+import BottomNavigation from './BottomNavigation'
 import SearchAndFilter from './SearchAndFilter'
 
 export default function RestaurantApp({ session, supabase }) {
   const [restaurants, setRestaurants] = useState([])
   const [filteredRestaurants, setFilteredRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState('list') // 'list' or 'map'
+  const [activeTab, setActiveTab] = useState('list') // 'list', 'map', 'search', 'profile'
   const [showImporter, setShowImporter] = useState(false)
 
   useEffect(() => {
@@ -60,6 +63,10 @@ export default function RestaurantApp({ session, supabase }) {
     setShowImporter(false)
   }
 
+  const handleAddRestaurantClick = () => {
+    setShowImporter(true)
+  }
+
   const handleRestaurantDelete = async (savedRecId) => {
     try {
       const { error } = await supabase
@@ -82,66 +89,154 @@ export default function RestaurantApp({ session, supabase }) {
     setFilteredRestaurants(filtered)
   }
 
-  if (loading) {
-    return <div className="loading">Loading your restaurants...</div>
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId)
+  }
+
+  const renderCurrentTab = () => {
+    if (loading) {
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '50vh',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #007AFF',
+            borderTop: '3px solid transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ color: '#8E8E93', fontSize: '16px' }}>
+            Loading your restaurants...
+          </p>
+        </div>
+      )
+    }
+
+    switch (activeTab) {
+      case 'list':
+        return (
+          <div style={{ paddingBottom: '100px' }}>
+            {/* List Header */}
+            <div style={{
+              padding: '20px 20px 0 20px',
+              maxWidth: '500px',
+              margin: '0 auto'
+            }}>
+              <h2 style={{
+                margin: '0 0 16px 0',
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1C1C1E'
+              }}>
+                📋 My Restaurants
+              </h2>
+              {restaurants.length > 0 && (
+                <p style={{
+                  margin: '0 0 20px 0',
+                  fontSize: '16px',
+                  color: '#8E8E93',
+                  lineHeight: 1.4
+                }}>
+                  {restaurants.length} saved restaurant{restaurants.length !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+
+            {/* Search and Filter for Saved Restaurants */}
+            {restaurants.length > 0 && (
+              <div style={{
+                padding: '0 20px 20px 20px',
+                maxWidth: '500px',
+                margin: '0 auto'
+              }}>
+                <SearchAndFilter
+                  restaurants={restaurants}
+                  onFilteredResults={handleFilteredResults}
+                  allTags={getAllTags()}
+                />
+              </div>
+            )}
+
+            {/* Restaurant List */}
+            {restaurants.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                color: '#8E8E93'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+                <h3 style={{
+                  margin: '0 0 8px 0',
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1C1C1E'
+                }}>
+                  No restaurants yet
+                </h3>
+                <p style={{
+                  margin: 0,
+                  fontSize: '16px',
+                  lineHeight: 1.4
+                }}>
+                  Tap the ➕ button to add your first restaurant from Instagram!
+                </p>
+              </div>
+            ) : (
+              <RestaurantList 
+                restaurants={filteredRestaurants}
+                onRestaurantDelete={handleRestaurantDelete}
+              />
+            )}
+          </div>
+        )
+      
+      case 'map':
+        return (
+          <div style={{ paddingBottom: '100px' }}>
+            <MapView restaurants={filteredRestaurants} />
+          </div>
+        )
+      
+      case 'search':
+        return (
+          <DiscoverTab
+            onAddRestaurant={handleAddRestaurantClick}
+          />
+        )
+      
+      case 'profile':
+        return (
+          <ProfileTab
+            session={session}
+            onSignOut={handleSignOut}
+          />
+        )
+      
+      default:
+        return null
+    }
   }
 
   return (
-    <div className="restaurant-app">
-      {/* Header */}
-      <header className="app-header">
-        <h1>🌫️ haze</h1>
-        <div className="header-actions">
-          <button 
-            onClick={() => setShowImporter(true)}
-            className="add-button"
-          >
-            ➕ Add Restaurant
-          </button>
-          <button onClick={handleSignOut} className="sign-out-button">
-            🚪
-          </button>
-        </div>
-      </header>
-
-      {/* View Toggle */}
-      <div className="view-toggle">
-        <button 
-          onClick={() => setView('list')}
-          className={view === 'list' ? 'active' : ''}
-        >
-          📋 List
-        </button>
-        <button 
-          onClick={() => setView('map')}
-          className={view === 'map' ? 'active' : ''}
-        >
-          🗺️ Map
-        </button>
-      </div>
-
-      {/* Search and Filter - Only show in list view */}
-      {view === 'list' && restaurants.length > 0 && (
-        <div className="search-section">
-          <SearchAndFilter
-            restaurants={restaurants}
-            onFilteredResults={handleFilteredResults}
-            allTags={getAllTags()}
-          />
-        </div>
-      )}
-
+    <div className="restaurant-app" style={{ paddingBottom: '100px' }}>
       {/* Main Content */}
-      <main className="main-content">
-        {view === 'list' ? (
-          <RestaurantList 
-            restaurants={filteredRestaurants} // Use filtered results
-            onRestaurantDelete={handleRestaurantDelete}
-          />
-        ) : (
-          <MapView restaurants={filteredRestaurants} /> // Also filter map results
-        )}
+      <main className="main-content" style={{ minHeight: '100vh' }}>
+        {renderCurrentTab()}
       </main>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onAddRestaurant={handleAddRestaurantClick}
+      />
 
       {/* Instagram Importer Modal */}
       {showImporter && (
@@ -153,29 +248,11 @@ export default function RestaurantApp({ session, supabase }) {
         />
       )}
 
+      {/* Loading Animation CSS */}
       <style jsx>{`
-        .search-section {
-          padding: 0 20px;
-          margin-bottom: 4px;
-        }
-
-        .results-count {
-          padding: 0 20px;
-          margin-bottom: 16px;
-          font-size: 0.9rem;
-          color: #64748b;
-          font-weight: 500;
-        }
-
-        @media (max-width: 640px) {
-          .search-section {
-            padding: 0 16px;
-          }
-
-          .results-count {
-            padding: 0 16px;
-            margin-bottom: 12px;
-          }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
     </div>

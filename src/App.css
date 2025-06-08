@@ -127,112 +127,10 @@ input, textarea, select {
   flex-direction: column;
 }
 
-.app-header {
-  background: white;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  /* iOS safe area */
-  padding-top: max(12px, env(safe-area-inset-top));
-}
-
-.app-header h1 {
-  font-size: 1.25rem;
-  color: #1e293b;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.add-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  background: #10b981;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-  /* Better touch target */
-  min-height: 44px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.add-button:hover, .add-button:active {
-  background: #059669;
-}
-
-.sign-out-button {
-  padding: 10px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-  min-height: 44px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.sign-out-button:hover, .sign-out-button:active {
-  background: #dc2626;
-}
-
-.view-toggle {
-  display: flex;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-  /* iOS safe area for landscape */
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-.view-toggle button {
-  flex: 1;
-  padding: 16px 12px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 500;
-  color: #64748b;
-  transition: all 0.2s;
-  font-size: 15px;
-  /* Better touch targets */
-  min-height: 52px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.view-toggle button.active {
-  color: #3b82f6;
-  background: #eff6ff;
-  border-bottom: 2px solid #3b82f6;
-}
-
 .main-content {
   flex: 1;
-  overflow: hidden;
-  /* iOS safe area */
-  padding-bottom: env(safe-area-inset-bottom);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
 }
 
 /* Loading */
@@ -258,8 +156,10 @@ input, textarea, select {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1001; /* Higher than bottom nav */
   padding: 0;
+  /* Prevent background scrolling */
+  overflow: hidden;
 }
 
 .modal {
@@ -271,8 +171,10 @@ input, textarea, select {
   overflow-y: auto;
   /* iOS optimizations */
   -webkit-overflow-scrolling: touch;
-  /* Safe area support */
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Account for bottom navigation + safe area */
+  padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  /* Prevent momentum scrolling from affecting background */
+  overscroll-behavior: contain;
 }
 
 /* Restaurant List - Mobile Optimized */
@@ -364,20 +266,6 @@ input, textarea, select {
     margin-bottom: 32px;
   }
   
-  .app-header {
-    padding: 16px 20px;
-  }
-  
-  .app-header h1 {
-    font-size: 1.5rem;
-  }
-  
-  .add-button {
-    padding: 8px 16px;
-    gap: 8px;
-    font-size: 16px;
-  }
-  
   .restaurant-list {
     padding: 20px;
   }
@@ -406,11 +294,6 @@ input, textarea, select {
   
   .restaurant-meta {
     font-size: 0.875rem;
-  }
-  
-  .view-toggle button {
-    padding: 12px;
-    font-size: 16px;
   }
   
   /* Modal becomes centered on desktop */

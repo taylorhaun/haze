@@ -1,7 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+  }, [])
 
   if (!restaurant || !savedRec) return null
 
@@ -424,7 +437,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
         }
 
         .detail-actions {
-          padding: 20px;
+          padding: 20px 20px calc(90px + 20px) 20px; /* Extra bottom padding for bottom nav */
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
@@ -526,7 +539,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           }
 
           .detail-actions {
-            padding: 16px;
+            padding: 16px 16px calc(90px + 16px) 16px; /* Extra bottom padding for bottom nav */
           }
 
           .action-button {
