@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { X, Instagram, MapPin } from 'lucide-react'
 import { Loader } from '@googlemaps/js-api-loader'
 
 export default function InstagramImporter({ supabase, session, onClose, onRestaurantAdded }) {
@@ -412,52 +411,73 @@ export default function InstagramImporter({ supabase, session, onClose, onRestau
     <div className="modal-overlay">
       <div className="modal">
         <div style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>Add Restaurant</h2>
-            <button 
+          {/* Header */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: '20px',
+            borderBottom: '1px solid #e5e5e5',
+            paddingBottom: '15px'
+          }}>
+            <h2 style={{ margin: 0 }}>Add Restaurant</h2>
+            <button
               onClick={onClose}
-              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                padding: '0',
+                color: '#6b7280'
+              }}
             >
-              <X size={24} />
+              ❌
             </button>
           </div>
 
-          {/* Tabs */}
-          <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid #e2e8f0' }}>
-            <button
-              onClick={() => setActiveTab('instagram')}
-              style={{
-                padding: '8px 16px',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'instagram' ? '2px solid #3b82f6' : 'none',
-                color: activeTab === 'instagram' ? '#3b82f6' : '#64748b',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Instagram size={16} />
-              Instagram URL
-            </button>
-            <button
-              onClick={() => setActiveTab('manual')}
-              style={{
-                padding: '8px 16px',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'manual' ? '2px solid #3b82f6' : 'none',
-                color: activeTab === 'manual' ? '#3b82f6' : '#64748b',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <MapPin size={16} />
-              Manual Entry
-            </button>
+          {/* Tab Selector */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ 
+              display: 'flex', 
+              borderBottom: '1px solid #e5e5e5',
+              marginBottom: '20px'
+            }}>
+              <button
+                onClick={() => setActiveTab('instagram')}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: activeTab === 'instagram' ? '#3b82f6' : 'transparent',
+                  color: activeTab === 'instagram' ? 'white' : '#374151',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  borderRadius: '0',
+                  transition: 'all 0.2s'
+                }}
+              >
+                📷 From Instagram
+              </button>
+              <button
+                onClick={() => setActiveTab('manual')}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: activeTab === 'manual' ? '#3b82f6' : 'transparent',
+                  color: activeTab === 'manual' ? 'white' : '#374151',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  borderRadius: '0',
+                  transition: 'all 0.2s'
+                }}
+              >
+                ✏️ Manual Entry
+              </button>
+            </div>
           </div>
 
           {/* Instagram Import Tab */}

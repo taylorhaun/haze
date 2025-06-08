@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { MapPin, Plus, Instagram, Link, LogOut } from 'lucide-react'
 import InstagramImporter from './InstagramImporter'
 import RestaurantList from './RestaurantList'
 import MapView from './MapView'
@@ -57,11 +56,10 @@ export default function RestaurantApp({ session, supabase }) {
             onClick={() => setShowImporter(true)}
             className="add-button"
           >
-            <Plus size={20} />
-            Add Restaurant
+            ➕ Add Restaurant
           </button>
           <button onClick={handleSignOut} className="sign-out-button">
-            <LogOut size={16} />
+            🚪
           </button>
         </div>
       </header>
@@ -72,14 +70,13 @@ export default function RestaurantApp({ session, supabase }) {
           onClick={() => setView('list')}
           className={view === 'list' ? 'active' : ''}
         >
-          List
+          📋 List
         </button>
         <button 
           onClick={() => setView('map')}
           className={view === 'map' ? 'active' : ''}
         >
-          <MapPin size={16} />
-          Map
+          🗺️ Map
         </button>
       </div>
 
