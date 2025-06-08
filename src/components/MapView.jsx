@@ -504,9 +504,9 @@ Please:
           borderRadius: '0' // Mobile friendly
         }} 
       />
-      
+
       {/* Map Stats Overlay */}
-      <div style={{
+      {/* <div style={{
         position: 'absolute',
         top: '10px',
         left: '10px',
@@ -524,7 +524,7 @@ Please:
             🟢 Your location detected
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Custom Locate Me Button as fallback */}
       <button
@@ -553,25 +553,6 @@ Please:
       >
         '📍'
       </button>
-
-      {/* Missing Location Warning */}
-      {restaurantsWithLocation < restaurants.length && (
-        <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          left: '10px',
-          right: '10px',
-          background: 'rgba(251, 191, 36, 0.95)',
-          color: '#92400e',
-          padding: '8px 12px',
-          borderRadius: '8px',
-          fontSize: '13px',
-          textAlign: 'center',
-          backdropFilter: 'blur(4px)'
-        }}>
-          💡 {restaurants.length - restaurantsWithLocation} restaurants missing location data
-        </div>
-      )}
     </div>
   )
 } 
