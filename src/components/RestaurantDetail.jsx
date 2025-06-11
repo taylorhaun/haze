@@ -30,11 +30,16 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
   }
 
   const handleGetDirections = () => {
-    if (restaurant.latitude && restaurant.longitude) {
-      const url = `https://maps.google.com/maps?daddr=${restaurant.latitude},${restaurant.longitude}`
-      window.open(url, '_blank')
-    } else if (restaurant.address) {
-      const url = `https://maps.google.com/maps?daddr=${encodeURIComponent(restaurant.address)}`
+    // Search for the restaurant by name and address in Google Maps
+    // This opens the actual business listing instead of just coordinates
+    let searchQuery = restaurant.name
+    
+    if (restaurant.address) {
+      searchQuery += ` ${restaurant.address}`
+    }
+    
+    if (searchQuery) {
+      const url = `https://maps.google.com/maps?q=${encodeURIComponent(searchQuery)}`
       window.open(url, '_blank')
     }
   }

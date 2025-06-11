@@ -361,6 +361,23 @@ Please:
     return distance
   }
 
+  // Generate Google Maps search URL for the restaurant
+  const getDirectionsUrl = (restaurant) => {
+    // Search for the restaurant by name and address in Google Maps
+    // This opens the actual business listing instead of just coordinates
+    let searchQuery = restaurant.name
+    
+    if (restaurant.address) {
+      searchQuery += ` ${restaurant.address}`
+    }
+    
+    if (searchQuery) {
+      return `https://maps.google.com/maps?q=${encodeURIComponent(searchQuery)}`
+    }
+    
+    return null
+  }
+
   // Create info window HTML content
   const createInfoWindowContent = (restaurant, savedRec, userLocation) => {
     const tags = savedRec.tags?.length ? savedRec.tags.slice(0, 3).join(', ') : ''
@@ -376,6 +393,9 @@ Please:
       )
       distanceText = `📍 ${distance.toFixed(1)} miles away`
     }
+
+    // Get directions URL
+    const directionsUrl = getDirectionsUrl(restaurant)
     
     return `
       <div style="padding: 8px; max-width: 280px;">
@@ -423,18 +443,54 @@ Please:
           </div>
         ` : ''}
         
-        <p style="margin: 6px 0 0 0; color: #9ca3af; font-size: 12px;">
+        <p style="margin: 6px 0 8px 0; color: #9ca3af; font-size: 12px;">
           ${source} • ${new Date(savedRec.created_at).toLocaleDateString()}
         </p>
-        
-        ${restaurant.website ? `
-          <div style="margin-top: 8px;">
-            <a href="${restaurant.website}" target="_blank" rel="noopener noreferrer" 
-               style="color: #3b82f6; font-size: 14px; text-decoration: none; font-weight: 500;">
-              Visit Website →
+
+        <!-- Action buttons -->
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+          ${directionsUrl ? `
+            <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer"
+               style="
+                 background: #3b82f6; 
+                 color: white; 
+                 text-decoration: none; 
+                 padding: 8px 12px; 
+                 border-radius: 6px; 
+                 font-size: 13px; 
+                 font-weight: 500;
+                 display: flex;
+                 align-items: center;
+                 gap: 4px;
+                 transition: background 0.2s;
+               "
+               onmouseover="this.style.background='#2563eb'"
+               onmouseout="this.style.background='#3b82f6'">
+              🧭 Get Directions
             </a>
-          </div>
-        ` : ''}
+          ` : ''}
+          
+          ${restaurant.website ? `
+            <a href="${restaurant.website}" target="_blank" rel="noopener noreferrer" 
+               style="
+                 background: #e5e7eb; 
+                 color: #374151; 
+                 text-decoration: none; 
+                 padding: 8px 12px; 
+                 border-radius: 6px; 
+                 font-size: 13px; 
+                 font-weight: 500;
+                 display: flex;
+                 align-items: center;
+                 gap: 4px;
+                 transition: background 0.2s;
+               "
+               onmouseover="this.style.background='#d1d5db'"
+               onmouseout="this.style.background='#e5e7eb'">
+              🌐 Website
+            </a>
+          ` : ''}
+        </div>
       </div>
     `
   }
@@ -551,7 +607,7 @@ Please:
         }}
         title={userLocation ? 'Center on your location' : 'Find my location'}
       >
-        '📍'
+        📍
       </button>
     </div>
   )
