@@ -398,57 +398,45 @@ Please:
     const directionsUrl = getDirectionsUrl(restaurant)
     
     return `
-      <div style="padding: 8px; max-width: 280px;">
-        <h3 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 600;">
+      <div style="padding: 10px; max-width: 310px;">
+        <h3 style="margin: 0 0 8px 0; color: #1e293b; font-size: 17px; font-weight: 600;">
           ${restaurant.name}
         </h3>
         
-        ${restaurant.address ? `
-          <p style="margin: 0 0 6px 0; color: #64748b; font-size: 14px; line-height: 1.4;">
-            📍 ${restaurant.address}
-          </p>
-        ` : ''}
-        
-        ${distanceText ? `
-          <p style="margin: 0 0 6px 0; color: #10b981; font-size: 14px; font-weight: 500;">
-            ${distanceText}
-          </p>
-        ` : ''}
-        
         ${rating ? `
-          <p style="margin: 0 0 6px 0; color: #64748b; font-size: 14px;">
+          <p style="margin: 0 0 8px 0; color: #64748b; font-size: 14px;">
             ${rating}
           </p>
         ` : ''}
         
-        ${restaurant.phone ? `
-          <p style="margin: 0 0 6px 0; color: #64748b; font-size: 14px;">
-            📞 <a href="tel:${restaurant.phone}" style="color: #3b82f6; text-decoration: none;">
-              ${restaurant.phone}
-            </a>
-          </p>
-        ` : ''}
-        
-        ${savedRec.user_notes ? `
-          <p style="margin: 6px 0; color: #374151; font-size: 14px; font-style: italic; line-height: 1.4;">
-            "${savedRec.user_notes}"
-          </p>
-        ` : ''}
-        
         ${tags ? `
-          <div style="margin: 8px 0 4px 0;">
-            <span style="display: inline-block; background: #eff6ff; color: #3b82f6; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+          <div style="margin: 0 0 8px 0;">
+            <span style="display: inline-block; background: #eff6ff; color: #3b82f6; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
               ${tags}
             </span>
           </div>
         ` : ''}
         
-        <p style="margin: 6px 0 8px 0; color: #9ca3af; font-size: 12px;">
-          ${source} • ${new Date(savedRec.created_at).toLocaleDateString()}
-        </p>
+        ${distanceText ? `
+          <p style="margin: 0 0 8px 0; color: #10b981; font-size: 14px; font-weight: 500;">
+            ${distanceText}
+          </p>
+        ` : ''}
+        
+        ${savedRec.user_notes ? `
+          <p style="margin: 8px 0; color: #374151; font-size: 14px; font-style: italic; line-height: 1.4;">
+            "${savedRec.user_notes}"
+          </p>
+        ` : ''}
+
+        ${restaurant.address ? `
+          <p style="margin: 8px 0; color: #64748b; font-size: 13px; line-height: 1.4;">
+            📍 ${restaurant.address}
+          </p>
+        ` : ''}
 
         <!-- Action buttons -->
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <div style="display: flex; gap: 8px; margin: 12px 0;">
           ${directionsUrl ? `
             <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer"
                style="
