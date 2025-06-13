@@ -11,7 +11,7 @@ export default function RestaurantApp({ session, supabase }) {
   const [restaurants, setRestaurants] = useState([])
   const [filteredRestaurants, setFilteredRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('list') // 'list', 'map', 'search', 'profile'
+  const [activeTab, setActiveTab] = useState('map') // 'list', 'map', 'search', 'profile'
   const [showImporter, setShowImporter] = useState(false)
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export default function RestaurantApp({ session, supabase }) {
   }
 
   const handleAddRestaurantClick = () => {
+    console.log('[DEBUG] Plus button clicked, opening importer modal')
     setShowImporter(true)
   }
 
@@ -192,6 +193,8 @@ export default function RestaurantApp({ session, supabase }) {
               <RestaurantList 
                 restaurants={filteredRestaurants}
                 onRestaurantDelete={handleRestaurantDelete}
+                onRestaurantUpdate={fetchRestaurants}
+                supabase={supabase}
               />
             )}
           </div>
@@ -200,7 +203,7 @@ export default function RestaurantApp({ session, supabase }) {
       case 'map':
         return (
           <div style={{ paddingBottom: '100px' }}>
-            <MapView restaurants={filteredRestaurants} />
+            <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} />
           </div>
         )
       
@@ -240,12 +243,14 @@ export default function RestaurantApp({ session, supabase }) {
 
       {/* Instagram Importer Modal */}
       {showImporter && (
-        <InstagramImporter
-          supabase={supabase}
-          session={session}
-          onClose={() => setShowImporter(false)}
-          onRestaurantAdded={handleRestaurantAdded}
-        />
+        <div className="modal-overlay">
+          <InstagramImporter
+            supabase={supabase}
+            session={session}
+            onClose={() => setShowImporter(false)}
+            onRestaurantAdded={handleRestaurantAdded}
+          />
+        </div>
       )}
 
       {/* Loading Animation CSS */}

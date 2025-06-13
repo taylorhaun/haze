@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
 
 export default function InstagramImporter({ supabase, session, onClose, onRestaurantAdded }) {
@@ -19,6 +19,36 @@ export default function InstagramImporter({ supabase, session, onClose, onRestau
   const [restaurantName, setRestaurantName] = useState('')
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
+
+  // Add state for editable tags/notes after extraction
+  const [editableTags, setEditableTags] = useState([])
+  const [editableNotes, setEditableNotes] = useState('')
+  const tagInputRef = useRef(null)
+
+  // When extractedData changes, update editable fields
+  useEffect(() => {
+    if (extractedData) {
+      setEditableTags(Array.isArray(extractedData.tags) ? extractedData.tags : [])
+      setEditableNotes('') // Do not prefill notes
+    }
+  }, [extractedData])
+
+  // Tag input handlers
+  const handleTagInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      const value = e.target.value.trim()
+      if (value && !editableTags.includes(value)) {
+        setEditableTags([...editableTags, value])
+        e.target.value = ''
+      }
+    } else if (e.key === 'Backspace' && !e.target.value) {
+      setEditableTags(editableTags.slice(0, -1))
+    }
+  }
+  const handleRemoveTag = (tag) => {
+    setEditableTags(editableTags.filter(t => t !== tag))
+  }
 
   // Initialize Google Maps
   useEffect(() => {
@@ -444,15 +474,15 @@ export default function InstagramImporter({ supabase, session, onClose, onRestau
         restaurant_id: restaurant.id,
         source_type: 'instagram',
         source_url: instagramUrl,
-        user_notes: extractedData.description,
-        tags: extractedData.tags,
+        user_notes: editableNotes,
+        tags: editableTags,
         source_data: {
           sentiment: extractedData.sentiment,
           mentions: extractedData.mentions,
           confidence: extractedData.confidence,
           extraction_method: extractedData.source,
           photos: extractedData.photos,
-          reviews: extractedData.reviews?.slice(0, 2) // Save some reviews
+          reviews: extractedData.reviews?.slice(0, 2)
         }
       }
 
@@ -720,8 +750,8 @@ Return detailed JSON: {
         restaurant_id: restaurant.id,
         source_type: 'screenshot',
         source_url: screenshotData.screenshot_url,
-        user_notes: screenshotData.description,
-        tags: screenshotData.tags,
+        user_notes: screenshotEditableNotes,
+        tags: screenshotEditableTags,
         source_data: {
           sentiment: screenshotData.sentiment,
           confidence: screenshotData.confidence,
@@ -787,278 +817,143 @@ Return detailed JSON: {
     }
   }
 
+  // Add state for screenshotEditableTags and screenshotEditableNotes
+  const [screenshotEditableTags, setScreenshotEditableTags] = useState([])
+  const [screenshotEditableNotes, setScreenshotEditableNotes] = useState('')
+  const screenshotTagInputRef = useRef(null)
+  useEffect(() => {
+    if (screenshotData) {
+      setScreenshotEditableTags(Array.isArray(screenshotData.tags) ? screenshotData.tags : [])
+      setScreenshotEditableNotes('') // Do not prefill notes
+    }
+  }, [screenshotData])
+  const handleScreenshotTagInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      const value = e.target.value.trim()
+      if (value && !screenshotEditableTags.includes(value)) {
+        setScreenshotEditableTags([...screenshotEditableTags, value])
+        e.target.value = ''
+      }
+    } else if (e.key === 'Backspace' && !e.target.value) {
+      setScreenshotEditableTags(screenshotEditableTags.slice(0, -1))
+    }
+  }
+  const handleRemoveScreenshotTag = (tag) => {
+    setScreenshotEditableTags(screenshotEditableTags.filter(t => t !== tag))
+  }
+
   return (
-    <div className="modal-overlay">
-      <div className="modal">
-        <div style={{ padding: '24px' }}>
-          {/* Header */}
+    <div className="modal" style={{ width: '95vw', maxWidth: 500, padding: 0, borderRadius: 12 }}>
+      <div style={{ padding: '20px 0 0 0' }}>
+        {/* Header */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '12px',
+          borderBottom: '1px solid #e5e5e5',
+          padding: '0 16px 12px 16px',
+        }}>
+          <h2 style={{ margin: 0, fontSize: 22 }}>Add Restaurant</h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              padding: '0',
+              color: '#6b7280'
+            }}
+          >
+            ❌
+          </button>
+        </div>
+
+        {/* Tab Selector */}
+        <div style={{ marginBottom: '16px', padding: '0 16px' }}>
           <div style={{ 
             display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '20px',
             borderBottom: '1px solid #e5e5e5',
-            paddingBottom: '15px'
+            marginBottom: '0'
           }}>
-            <h2 style={{ margin: 0 }}>Add Restaurant</h2>
             <button
-              onClick={onClose}
+              onClick={() => setActiveTab('instagram')}
               style={{
-                background: 'none',
+                flex: 1,
+                padding: '12px 8px',
                 border: 'none',
-                fontSize: '24px',
+                background: activeTab === 'instagram' ? '#3b82f6' : 'transparent',
+                color: activeTab === 'instagram' ? 'white' : '#374151',
                 cursor: 'pointer',
-                padding: '0',
-                color: '#6b7280'
+                fontSize: '13px',
+                fontWeight: '500',
+                borderRadius: '0',
+                transition: 'all 0.2s'
               }}
             >
-              ❌
+              📷 Instagram Link
+            </button>
+            <button
+              onClick={() => setActiveTab('screenshot')}
+              style={{
+                flex: 1,
+                padding: '12px 8px',
+                border: 'none',
+                background: activeTab === 'screenshot' ? '#3b82f6' : 'transparent',
+                color: activeTab === 'screenshot' ? 'white' : '#374151',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '500',
+                borderRadius: '0',
+                transition: 'all 0.2s'
+              }}
+            >
+              🖼️ Screenshot
+            </button>
+            <button
+              onClick={() => setActiveTab('manual')}
+              style={{
+                flex: 1,
+                padding: '12px 8px',
+                border: 'none',
+                background: activeTab === 'manual' ? '#3b82f6' : 'transparent',
+                color: activeTab === 'manual' ? 'white' : '#374151',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '500',
+                borderRadius: '0',
+                transition: 'all 0.2s'
+              }}
+            >
+              ✏️ Manual Entry
             </button>
           </div>
+        </div>
 
-          {/* Tab Selector */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ 
-              display: 'flex', 
-              borderBottom: '1px solid #e5e5e5',
-              marginBottom: '20px'
-            }}>
-              <button
-                onClick={() => setActiveTab('instagram')}
-                style={{
-                  flex: 1,
-                  padding: '12px 8px',
-                  border: 'none',
-                  background: activeTab === 'instagram' ? '#3b82f6' : 'transparent',
-                  color: activeTab === 'instagram' ? 'white' : '#374151',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  borderRadius: '0',
-                  transition: 'all 0.2s'
-                }}
-              >
-                📷 Instagram Link
-              </button>
-              <button
-                onClick={() => setActiveTab('screenshot')}
-                style={{
-                  flex: 1,
-                  padding: '12px 8px',
-                  border: 'none',
-                  background: activeTab === 'screenshot' ? '#3b82f6' : 'transparent',
-                  color: activeTab === 'screenshot' ? 'white' : '#374151',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  borderRadius: '0',
-                  transition: 'all 0.2s'
-                }}
-              >
-                🖼️ Screenshot
-              </button>
-              <button
-                onClick={() => setActiveTab('manual')}
-                style={{
-                  flex: 1,
-                  padding: '12px 8px',
-                  border: 'none',
-                  background: activeTab === 'manual' ? '#3b82f6' : 'transparent',
-                  color: activeTab === 'manual' ? 'white' : '#374151',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  borderRadius: '0',
-                  transition: 'all 0.2s'
-                }}
-              >
-                ✏️ Manual Entry
-              </button>
-            </div>
-          </div>
-
-          {/* Instagram Import Tab */}
-          {activeTab === 'instagram' && (
-            <div>
-              <form onSubmit={handleInstagramImport}>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                    Instagram Post URL
-                  </label>
-                  <input
-                    type="url"
-                    value={instagramUrl}
-                    onChange={(e) => setInstagramUrl(e.target.value)}
-                    placeholder="https://www.instagram.com/p/..."
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px'
-                    }}
-                  />
-                </div>
-
-                {/* Show current step */}
-                {loading && currentStep && (
-                  <div style={{ 
-                    background: '#eff6ff', 
-                    padding: '12px', 
-                    borderRadius: '8px', 
-                    marginBottom: '16px',
-                    color: '#3b82f6'
-                  }}>
-                    {currentStep}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading || !instagramUrl.trim()}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    opacity: loading || !instagramUrl.trim() ? 0.6 : 1,
-                    marginBottom: '20px'
-                  }}
-                >
-                  {loading ? 'Analyzing...' : 'Smart Extract (Google + AI)'}
-                </button>
-              </form>
-
-              {/* Show extracted data */}
-              {extractedData && (
-                <div style={{ 
-                  background: '#f8fafc', 
-                  padding: '16px', 
-                  borderRadius: '8px',
-                  marginBottom: '16px'
-                }}>
-                  <h3 style={{ marginBottom: '12px' }}>
-                    🔍 Smart Analysis Results:
-                  </h3>
-                  
-                  {/* Official Google Places Data */}
-                  <div style={{ marginBottom: '12px', background: '#ffffff', padding: '12px', borderRadius: '6px' }}>
-                    <h4 style={{ marginBottom: '8px', color: '#059669' }}>📍 Official Restaurant Data:</h4>
-                    <div style={{ marginBottom: '4px' }}>
-                      <strong>Name:</strong> {extractedData.name}
-                    </div>
-                    <div style={{ marginBottom: '4px' }}>
-                      <strong>Address:</strong> {extractedData.address}
-                    </div>
-                    {extractedData.phone && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Phone:</strong> {extractedData.phone}
-                      </div>
-                    )}
-                    {extractedData.rating && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Rating:</strong> {extractedData.rating}⭐ ({extractedData.reviews?.length || 0} reviews)
-                      </div>
-                    )}
-                    {extractedData.hours?.openNow !== undefined && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Status:</strong> <span style={{color: extractedData.hours.openNow ? '#059669' : '#dc2626'}}>
-                          {extractedData.hours.openNow ? 'Open Now' : 'Closed'}
-                        </span>
-                      </div>
-                    )}
-                    {extractedData.website && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Website:</strong> <a href={extractedData.website} target="_blank" rel="noopener noreferrer">{extractedData.website}</a>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Personal Context from AI */}
-                  <div style={{ marginBottom: '12px', background: '#ffffff', padding: '12px', borderRadius: '6px' }}>
-                    <h4 style={{ marginBottom: '8px', color: '#3b82f6' }}>🤖 Personal Context:</h4>
-                    <div style={{ marginBottom: '4px' }}>
-                      <strong>Why you saved this:</strong> {extractedData.description}
-                    </div>
-                    {extractedData.tags && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Tags:</strong> {extractedData.tags.join(', ')}
-                      </div>
-                    )}
-                    {extractedData.sentiment && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Sentiment:</strong> {extractedData.sentiment}
-                      </div>
-                    )}
-                    {extractedData.mentions && extractedData.mentions.length > 0 && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Mentions:</strong> {extractedData.mentions.join(', ')}
-                      </div>
-                    )}
-                  </div>
-
-                  {extractedData.confidence && (
-                    <div style={{ marginBottom: '12px', fontSize: '14px', color: '#666' }}>
-                      <strong>Analysis method:</strong> {extractedData.source || extractedData.confidence}
-                    </div>
-                  )}
-                  
-                  <button
-                    onClick={handleSaveExtracted}
-                    disabled={loading}
-                    style={{
-                      padding: '8px 16px',
-                      background: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      opacity: loading ? 0.6 : 1
-                    }}
-                  >
-                    {loading ? 'Saving...' : 'Save to Haze'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Screenshot Tab */}
-          {activeTab === 'screenshot' && (
-            <div>
+        {/* Instagram Import Tab */}
+        {activeTab === 'instagram' && (
+          <div>
+            <form onSubmit={handleInstagramImport} style={{ padding: '0 16px' }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  Upload Instagram Screenshot
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                  Instagram Post URL
                 </label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
+                  type="url"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  placeholder="https://www.instagram.com/p/..."
+                  required
                   style={{
                     width: '100%',
                     padding: '12px',
-                    border: '2px dashed #d1d5db',
+                    border: '1px solid #d1d5db',
                     borderRadius: '8px',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    background: selectedFile ? '#f0f9ff' : '#fafafa'
+                    fontSize: '16px'
                   }}
                 />
-                {selectedFile && (
-                  <div style={{ 
-                    marginTop: '8px', 
-                    padding: '8px', 
-                    background: '#f0f9ff', 
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    color: '#0369a1'
-                  }}>
-                    ✅ Selected: {selectedFile.name}
-                  </div>
-                )}
               </div>
 
               {/* Show current step */}
@@ -1074,191 +969,373 @@ Return detailed JSON: {
                 </div>
               )}
 
-              {selectedFile && !screenshotData && (
+              <button
+                type="submit"
+                disabled={loading || !instagramUrl.trim()}
+                style={{
+                  padding: '8px 16px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  opacity: loading || !instagramUrl.trim() ? 0.6 : 1,
+                  marginBottom: '20px'
+                }}
+              >
+                {loading ? 'Analyzing...' : 'Smart Extract (Google + AI)'}
+              </button>
+            </form>
+
+            {/* Show extracted data */}
+            {extractedData && (
+              <div style={{ padding: '0 16px' }}>
+                <div style={{ fontWeight: 600, fontSize: 17, margin: '18px 0 6px 0' }}>Smart Analysis Results</div>
+                <hr style={{ border: 0, borderTop: '1px solid #e5e5e5', margin: '0 0 12px 0' }} />
+                {/* Official Data */}
+                <div style={{ marginBottom: 10 }}>
+                  {extractedData.name && <div><strong>Name:</strong> {extractedData.name}</div>}
+                  {extractedData.address && <div><strong>Address:</strong> {extractedData.address}</div>}
+                  {extractedData.phone && <div><strong>Phone:</strong> {extractedData.phone}</div>}
+                  {extractedData.rating && <div><strong>Rating:</strong> {extractedData.rating}⭐ ({extractedData.reviews?.length || 0} reviews)</div>}
+                  {extractedData.hours?.openNow !== undefined && (
+                    <div><strong>Status:</strong> <span style={{color: extractedData.hours.openNow ? '#059669' : '#dc2626'}}>{extractedData.hours.openNow ? 'Open Now' : 'Closed'}</span></div>
+                  )}
+                  {extractedData.website && <div><strong>Website:</strong> <a href={extractedData.website} target="_blank" rel="noopener noreferrer">{extractedData.website}</a></div>}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 16, margin: '18px 0 6px 0' }}>Personal Context</div>
+                <hr style={{ border: 0, borderTop: '1px solid #e5e5e5', margin: '0 0 12px 0' }} />
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <strong>Personal Notes:</strong>
+                    <textarea
+                      value={editableNotes}
+                      onChange={e => setEditableNotes(e.target.value)}
+                      rows={2}
+                      style={{
+                        width: '100%',
+                        marginTop: '4px',
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '15px',
+                        resize: 'vertical',
+                      }}
+                      placeholder="Add your personal notes..."
+                    />
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <strong>Tags:</strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                      {editableTags.map((tag, idx) => (
+                        <span key={tag} style={{ background: '#eff6ff', color: '#3b82f6', padding: '4px 8px', borderRadius: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>
+                          {tag}
+                          <button onClick={() => handleRemoveTag(tag)} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1em' }} title="Remove tag">×</button>
+                        </span>
+                      ))}
+                      <input
+                        ref={tagInputRef}
+                        type="text"
+                        onKeyDown={handleTagInputKeyDown}
+                        placeholder="Add tag"
+                        style={{
+                          border: 'none',
+                          outline: 'none',
+                          fontSize: '0.95em',
+                          minWidth: 60,
+                          maxWidth: 90,
+                          background: '#3b82f6',
+                          color: 'white',
+                          borderRadius: '8px',
+                          padding: '4px 12px',
+                          marginLeft: '4px',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s',
+                          '::placeholder': { color: 'white', opacity: 1 },
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
                 <button
-                  onClick={processScreenshot}
+                  onClick={handleSaveExtracted}
                   disabled={loading}
                   style={{
-                    padding: '8px 16px',
-                    background: '#3b82f6',
+                    width: '100%',
+                    padding: '12px 0',
+                    background: '#10b981',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     opacity: loading ? 0.6 : 1,
-                    marginBottom: '20px'
+                    fontSize: 17,
+                    fontWeight: 600,
+                    margin: '18px 0 0 0'
                   }}
                 >
-                  {loading ? 'Analyzing...' : '🔍 Analyze Screenshot'}
+                  {loading ? 'Saving...' : 'Save to Haze'}
                 </button>
-              )}
+              </div>
+            )}
+          </div>
+        )}
 
-              {/* Show analyzed data */}
-              {screenshotData && (
-                <div style={{ 
-                  background: '#f8fafc', 
-                  padding: '16px', 
+        {/* Screenshot Tab */}
+        {activeTab === 'screenshot' && (
+          <div>
+            <div style={{ marginBottom: '16px', padding: '0 16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Upload Instagram Screenshot
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px dashed #d1d5db',
                   borderRadius: '8px',
-                  marginBottom: '16px'
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  background: selectedFile ? '#f0f9ff' : '#fafafa'
+                }}
+              />
+              {selectedFile && (
+                <div style={{ 
+                  marginTop: '8px', 
+                  padding: '8px', 
+                  background: '#f0f9ff', 
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  color: '#0369a1'
                 }}>
-                  <h3 style={{ marginBottom: '12px' }}>
-                    🔍 Screenshot Analysis Results:
-                  </h3>
-                  
-                  {/* Official Google Places Data */}
-                  <div style={{ marginBottom: '12px', background: '#ffffff', padding: '12px', borderRadius: '6px' }}>
-                    <h4 style={{ marginBottom: '8px', color: '#059669' }}>📍 Official Restaurant Data:</h4>
-                    <div style={{ marginBottom: '4px' }}>
-                      <strong>Name:</strong> {screenshotData.name}
-                    </div>
-                    <div style={{ marginBottom: '4px' }}>
-                      <strong>Address:</strong> {screenshotData.address}
-                    </div>
-                    {screenshotData.phone && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Phone:</strong> {screenshotData.phone}
-                      </div>
-                    )}
-                    {screenshotData.rating && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Rating:</strong> {screenshotData.rating}⭐ ({screenshotData.reviews?.length || 0} reviews)
-                      </div>
-                    )}
-                    {screenshotData.hours?.openNow !== undefined && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Status:</strong> <span style={{color: screenshotData.hours.openNow ? '#059669' : '#dc2626'}}>
-                          {screenshotData.hours.openNow ? 'Open Now' : 'Closed'}
-                        </span>
-                      </div>
-                    )}
-                    {screenshotData.website && (
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Website:</strong> <a href={screenshotData.website} target="_blank" rel="noopener noreferrer">{screenshotData.website}</a>
-                      </div>
-                    )}
-                  </div>
-
-
-
-                  <div style={{ marginBottom: '12px', fontSize: '14px', color: '#666' }}>
-                    <strong>Analysis method:</strong> Screenshot + Vision AI + Google Places
-                  </div>
-                  
-                  <button
-                    onClick={handleSaveScreenshot}
-                    disabled={loading}
-                    style={{
-                      padding: '8px 16px',
-                      background: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      opacity: loading ? 0.6 : 1
-                    }}
-                  >
-                    {loading ? 'Saving...' : 'Save to Haze'}
-                  </button>
+                  ✅ Selected: {selectedFile.name}
                 </div>
               )}
             </div>
-          )}
 
-          {/* Manual Entry Tab */}
-          {activeTab === 'manual' && (
-            <form onSubmit={handleManualSubmit}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                  Restaurant Name *
-                </label>
-                <input
-                  type="text"
-                  value={restaurantName}
-                  onChange={(e) => setRestaurantName(e.target.value)}
-                  placeholder="Enter restaurant name"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px'
-                  }}
-                />
+            {/* Show current step */}
+            {loading && currentStep && (
+              <div style={{ 
+                background: '#eff6ff', 
+                padding: '12px', 
+                borderRadius: '8px', 
+                marginBottom: '16px',
+                color: '#3b82f6'
+              }}>
+                {currentStep}
               </div>
+            )}
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                  Address
-                </label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Enter address (optional)"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px'
-                  }}
-                />
-              </div>
+            {selectedFile && !screenshotData && (
+              <button
+                onClick={processScreenshot}
+                disabled={loading}
+                style={{
+                  padding: '8px 16px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  marginBottom: '20px'
+                }}
+              >
+                {loading ? 'Analyzing...' : '🔍 Analyze Screenshot'}
+              </button>
+            )}
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                  Notes
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any notes about this restaurant?"
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    resize: 'vertical'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            {/* Show analyzed data */}
+            {screenshotData && (
+              <div style={{ padding: '0 16px' }}>
+                <div style={{ fontWeight: 600, fontSize: 17, margin: '18px 0 6px 0' }}>Smart Analysis Results</div>
+                <hr style={{ border: 0, borderTop: '1px solid #e5e5e5', margin: '0 0 12px 0' }} />
+                {/* Official Data */}
+                <div style={{ marginBottom: 10 }}>
+                  {screenshotData.name && <div><strong>Name:</strong> {screenshotData.name}</div>}
+                  {screenshotData.address && <div><strong>Address:</strong> {screenshotData.address}</div>}
+                  {screenshotData.phone && <div><strong>Phone:</strong> {screenshotData.phone}</div>}
+                  {screenshotData.rating && <div><strong>Rating:</strong> {screenshotData.rating}⭐ ({screenshotData.reviews?.length || 0} reviews)</div>}
+                  {screenshotData.hours?.openNow !== undefined && (
+                    <div><strong>Status:</strong> <span style={{color: screenshotData.hours.openNow ? '#059669' : '#dc2626'}}>{screenshotData.hours.openNow ? 'Open Now' : 'Closed'}</span></div>
+                  )}
+                  {screenshotData.website && <div><strong>Website:</strong> <a href={screenshotData.website} target="_blank" rel="noopener noreferrer">{screenshotData.website}</a></div>}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 16, margin: '18px 0 6px 0' }}>Personal Context</div>
+                <hr style={{ border: 0, borderTop: '1px solid #e5e5e5', margin: '0 0 12px 0' }} />
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <strong>Personal Notes:</strong>
+                    <textarea
+                      value={screenshotEditableNotes}
+                      onChange={e => setScreenshotEditableNotes(e.target.value)}
+                      rows={2}
+                      style={{
+                        width: '100%',
+                        marginTop: '4px',
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '15px',
+                        resize: 'vertical',
+                      }}
+                      placeholder="Add your personal notes..."
+                    />
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <strong>Tags:</strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                      {screenshotEditableTags.map((tag, idx) => (
+                        <span key={tag} style={{ background: '#eff6ff', color: '#3b82f6', padding: '4px 8px', borderRadius: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>
+                          {tag}
+                          <button onClick={() => handleRemoveScreenshotTag(tag)} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1em' }} title="Remove tag">×</button>
+                        </span>
+                      ))}
+                      <input
+                        ref={screenshotTagInputRef}
+                        type="text"
+                        onKeyDown={handleScreenshotTagInputKeyDown}
+                        placeholder="Add tag"
+                        style={{
+                          border: 'none',
+                          outline: 'none',
+                          fontSize: '0.95em',
+                          minWidth: 60,
+                          maxWidth: 90,
+                          background: '#3b82f6',
+                          color: 'white',
+                          borderRadius: '8px',
+                          padding: '4px 12px',
+                          marginLeft: '4px',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s',
+                          '::placeholder': { color: 'white', opacity: 1 },
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
                 <button
-                  type="button"
-                  onClick={onClose}
+                  onClick={handleSaveScreenshot}
+                  disabled={loading}
                   style={{
-                    padding: '8px 16px',
-                    background: '#f1f5f9',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !restaurantName.trim()}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#3b82f6',
+                    width: '100%',
+                    padding: '12px 0',
+                    background: '#10b981',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
                     cursor: 'pointer',
-                    opacity: loading || !restaurantName.trim() ? 0.6 : 1
+                    opacity: loading ? 0.6 : 1,
+                    fontSize: 17,
+                    fontWeight: 600,
+                    margin: '18px 0 0 0'
                   }}
                 >
-                  {loading ? 'Saving...' : 'Save Restaurant'}
+                  {loading ? 'Saving...' : 'Save to Haze'}
                 </button>
               </div>
-            </form>
-          )}
-        </div>
+            )}
+          </div>
+        )}
+
+        {/* Manual Entry Tab */}
+        {activeTab === 'manual' && (
+          <form onSubmit={handleManualSubmit} style={{ padding: '0 16px' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Restaurant Name *
+              </label>
+              <input
+                type="text"
+                value={restaurantName}
+                onChange={(e) => setRestaurantName(e.target.value)}
+                placeholder="Enter restaurant name"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Address
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter address (optional)"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Notes
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any notes about this restaurant?"
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '8px 16px',
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !restaurantName.trim()}
+                style={{
+                  padding: '8px 16px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  opacity: loading || !restaurantName.trim() ? 0.6 : 1
+                }}
+              >
+                {loading ? 'Saving...' : 'Save Restaurant'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )

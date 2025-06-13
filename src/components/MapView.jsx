@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
+import RestaurantDetail from './RestaurantDetail'
+import './MapView.css'  // We'll create this file next
 
-export default function MapView({ restaurants }) {
+export default function MapView({ restaurants, supabase, session }) {
   const mapRef = useRef(null)
   const [map, setMap] = useState(null)
   const [googleMaps, setGoogleMaps] = useState(null)
@@ -11,6 +13,16 @@ export default function MapView({ restaurants }) {
   const [userLocation, setUserLocation] = useState(null)
   const [userLocationMarker, setUserLocationMarker] = useState(null)
   const [locationLoading, setLocationLoading] = useState(false)
+  const justCenteredOnUser = useRef(false)
+  const [selectedSavedRec, setSelectedSavedRec] = useState(null)
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartY, setDragStartY] = useState(0)
+  const [dragStartHeight, setDragStartHeight] = useState(0)
+  const [height, setHeight] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filteredRestaurants, setFilteredRestaurants] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
 
   // Initialize Google Maps
   useEffect(() => {
@@ -117,7 +129,8 @@ export default function MapView({ restaurants }) {
         // Center map on user location
         if (map) {
           map.panTo(userPos)
-          map.setZoom(15)
+          map.setZoom(14) // Slightly wider view
+          justCenteredOnUser.current = true
         }
       },
       (error) => {
@@ -264,6 +277,74 @@ Please:
     
   }, [map, googleMaps, userLocation])
 
+  // Filter restaurants based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredRestaurants(restaurants)
+      setIsSearching(false)
+      return
+    }
+
+    setIsSearching(true)
+    const query = searchQuery.toLowerCase().trim()
+    const filtered = restaurants.filter(rec => {
+      const name = rec.restaurants?.name?.toLowerCase() || ''
+      const tags = rec.tags || []
+      const tagMatch = tags.some(tag => tag.toLowerCase().includes(query))
+      const nameMatch = name.includes(query)
+      return nameMatch || tagMatch
+    })
+
+    setFilteredRestaurants(filtered)
+  }, [searchQuery, restaurants])
+
+  // Update markers when filtered restaurants change
+  useEffect(() => {
+    if (!map || !googleMaps) return
+
+    // Clear existing markers
+    markers.forEach(marker => marker.setMap(null))
+    setMarkers([])
+
+    // Add markers for filtered restaurants
+    const newMarkers = filteredRestaurants
+      .filter(rec => rec.restaurants?.latitude && rec.restaurants?.longitude)
+      .map(rec => {
+        const marker = new googleMaps.maps.Marker({
+          position: {
+            lat: rec.restaurants.latitude,
+            lng: rec.restaurants.longitude
+          },
+          map,
+          title: rec.restaurants.name,
+          animation: googleMaps.maps.Animation.DROP
+        })
+
+        // Add click listener
+        marker.addListener('click', () => {
+          setSelectedSavedRec(rec)
+          setSelectedRestaurant(rec.restaurants)
+          setHeight(window.innerHeight * 0.5)
+        })
+
+        return marker
+      })
+
+    setMarkers(newMarkers)
+
+    // If we have filtered results, fit the map to show all markers
+    if (newMarkers.length > 0) {
+      const bounds = new googleMaps.maps.LatLngBounds()
+      newMarkers.forEach(marker => bounds.extend(marker.getPosition()))
+      map.fitBounds(bounds)
+      
+      // If zoomed in too far, zoom out a bit
+      if (map.getZoom() > 15) {
+        map.setZoom(15)
+      }
+    }
+  }, [filteredRestaurants, map, googleMaps])
+
   // Add markers when map and restaurants are ready
   useEffect(() => {
     if (!map || !googleMaps || !restaurants.length) return
@@ -320,11 +401,9 @@ Please:
 
       // Add click listener
       marker.addListener('click', () => {
-        // Close other info windows
-        markers.forEach(m => m.infoWindow?.close())
-        
-        infoWindow.open(map, marker)
-        marker.infoWindow = infoWindow
+        setSelectedSavedRec(savedRec);
+        setSelectedRestaurant(restaurant);
+        setHeight(window.innerHeight * 0.5); // Explicitly set to half height
       })
 
       marker.infoWindow = infoWindow
@@ -334,6 +413,12 @@ Please:
     })
 
     setMarkers(newMarkers)
+
+    // Only fit bounds if not just centered on user
+    if (justCenteredOnUser.current) {
+      justCenteredOnUser.current = false
+      return
+    }
 
     // Fit map to show all markers (including user location)
     if (validLocations > 0 || userLocation) {
@@ -483,6 +568,77 @@ Please:
     `
   }
 
+  // Drag handlers
+  const handleDragStart = (e) => {
+    setIsDragging(true)
+    setDragStartY(e.touches ? e.touches[0].clientY : e.clientY)
+    setDragStartHeight(height)
+  }
+  const handleDragMove = useCallback((e) => {
+    if (!isDragging) return;
+    const clientY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
+    const deltaY = dragStartY - clientY;
+    const newHeight = Math.max(200, Math.min(window.innerHeight * 0.9, dragStartHeight + deltaY));
+    setHeight(newHeight);
+  }, [isDragging, dragStartY, dragStartHeight]);
+  const handleDragEnd = useCallback((e) => {
+    setIsDragging(false);
+    document.removeEventListener('mousemove', handleDragMove);
+    const threshold = window.innerHeight * 0.2;
+    if (height > window.innerHeight * 0.7) {
+      setHeight(window.innerHeight * 0.9);
+    } else if (height < window.innerHeight * 0.4) {
+      setHeight(200);
+    } else {
+      setHeight(window.innerHeight * 0.5);
+    }
+  }, [height, handleDragMove]);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (height > window.innerHeight * 0.7) {
+        setHeight(window.innerHeight * 0.9);
+      } else if (height < window.innerHeight * 0.4) {
+        setHeight(200);
+      } else {
+        setHeight(window.innerHeight * 0.5);
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [height])
+
+  // Set height when restaurant is selected
+  useEffect(() => {
+    if (selectedRestaurant) {
+      const halfHeight = window.innerHeight * 0.5;
+      setHeight(halfHeight);
+    } else {
+      setHeight(0);
+    }
+  }, [selectedRestaurant]);
+
+  // Add this handler in MapView
+  const handleDelete = async (savedRecId) => {
+    try {
+      console.log('Attempting to delete:', savedRecId, 'for user:', session?.user?.id)
+      const { error } = await supabase
+        .from('saved_recs')
+        .delete()
+        .eq('id', savedRecId)
+        .eq('user_id', session.user.id)
+      if (error) throw error
+      setSelectedSavedRec(null)
+      setSelectedRestaurant(null)
+      setFilteredRestaurants(prev => prev.filter(rec => rec.id !== savedRecId))
+    } catch (error) {
+      console.error('Delete error:', error)
+      alert('Failed to delete restaurant: ' + (error.message || error))
+    }
+  }
+
   // Handle errors
   if (error) {
     return (
@@ -538,14 +694,96 @@ Please:
 
   return (
     <div className="map-container" style={{ position: 'relative' }}>
+      {/* Search Bar */}
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        left: '10px',
+        right: '10px',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '8px'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '24px',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          padding: '8px 16px',
+          width: '100%',
+          maxWidth: '500px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          transition: 'all 0.2s ease',
+          border: isSearching ? '2px solid #3b82f6' : '2px solid transparent'
+        }}>
+          <span style={{ color: '#64748b' }}>🔍</span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name or tag..."
+            style={{
+              border: 'none',
+              outline: 'none',
+              width: '100%',
+              fontSize: '16px',
+              color: '#1e293b',
+              background: 'transparent'
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Search Results Count */}
+        {isSearching && (
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '8px 16px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+            fontSize: '14px',
+            color: '#1e293b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <span>📍</span>
+            <span>
+              {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'result' : 'results'} found
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Map */}
       <div 
         ref={mapRef} 
         style={{ 
-          width: '100%', 
-          height: '100%',
-          minHeight: '80vh',
-          borderRadius: '0' // Mobile friendly
+          width: '100%',
+          height: '100vh',
+          borderRadius: '0',
+          position: 'relative',
+          zIndex: 1
         }} 
       />
 
@@ -591,12 +829,96 @@ Please:
           minHeight: '48px',
           transition: 'all 0.2s',
           backdropFilter: 'blur(4px)',
-          fontSize: '18px'
+          fontSize: '18px',
+          zIndex: 3000
         }}
         title={userLocation ? 'Center on your location' : 'Find my location'}
       >
         📍
       </button>
+
+      {selectedSavedRec && selectedRestaurant && (
+        <>
+          <div 
+            style={{
+              position: 'fixed',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              top: 0,
+              background: 'rgba(0,0,0,0.25)',
+              zIndex: 2000,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center'
+            }} 
+            onClick={() => { setSelectedSavedRec(null); setSelectedRestaurant(null) }}
+          >
+            <div 
+              style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: `${height}px`,
+                background: 'white',
+                borderTopLeftRadius: '20px',
+                borderTopRightRadius: '20px',
+                boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)',
+                zIndex: 1000,
+                transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                touchAction: 'none',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Drag handle area (minimal, transparent) */}
+              <div
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '24px',
+                  background: 'transparent',
+                  borderTopLeftRadius: '20px',
+                  borderTopRightRadius: '20px',
+                  zIndex: 10,
+                  flexShrink: 0,
+                  touchAction: 'none'
+                }}
+              >
+                <div
+                  style={{
+                    width: '40px',
+                    height: '5px',
+                    background: '#cbd5e1',
+                    borderRadius: '3px',
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                    touchAction: 'none'
+                  }}
+                  onTouchStart={handleDragStart}
+                  onTouchMove={handleDragMove}
+                  onTouchEnd={handleDragEnd}
+                />
+              </div>
+              {/* Scrollable content below the handle */}
+              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '100px' }}>
+                <RestaurantDetail
+                  restaurant={selectedRestaurant}
+                  savedRec={selectedSavedRec}
+                  onClose={() => { setSelectedSavedRec(null); setSelectedRestaurant(null) }}
+                  onDelete={handleDelete}
+                  supabase={supabase}
+                  isModal={false}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
-} 
+}

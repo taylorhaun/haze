@@ -1,7 +1,65 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
-export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete }) {
+export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, isModal = true }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editNotes, setEditNotes] = useState(savedRec.user_notes || '')
+  const [editTags, setEditTags] = useState(savedRec.tags || [])
+  const notesTextareaRef = useRef(null)
+  const tagInputRef = useRef(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setEditNotes(savedRec.user_notes || '')
+    setEditTags(savedRec.tags || [])
+  }, [savedRec])
+
+  // Tag input handlers
+  const handleTagInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      const value = e.target.value.trim()
+      if (value && !editTags.includes(value)) {
+        setEditTags([...editTags, value])
+        e.target.value = ''
+      }
+    } else if (e.key === 'Backspace' && !e.target.value) {
+      setEditTags(editTags.slice(0, -1))
+    }
+  }
+  const handleRemoveTag = (tag) => {
+    setEditTags(editTags.filter(t => t !== tag))
+  }
+
+  // Save handler
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      // Add any pending tag in the input
+      const pendingTag = tagInputRef.current && tagInputRef.current.value.trim()
+      let tagsToSave = editTags
+      if (pendingTag && !editTags.includes(pendingTag)) {
+        tagsToSave = [...editTags, pendingTag]
+        setEditTags(tagsToSave)
+        tagInputRef.current.value = ''
+      }
+      // Update saved_recs in Supabase
+      const { error } = await supabase
+        .from('saved_recs')
+        .update({
+          user_notes: editNotes,
+          tags: tagsToSave
+        })
+        .eq('id', savedRec.id)
+      if (error) throw error
+      setEditMode(false)
+      if (onEdit) onEdit({ ...savedRec, user_notes: editNotes, tags: tagsToSave })
+    } catch (err) {
+      alert('Failed to save changes: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Prevent body scrolling when modal is open
   useEffect(() => {
@@ -26,7 +84,9 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
   const handleDelete = () => {
     onDelete(savedRec.id)
-    onClose()
+    if (isModal) {
+      onClose()
+    }
   }
 
   const handleGetDirections = () => {
@@ -50,111 +110,187 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
     return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')
   }
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal restaurant-detail-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="detail-header">
-          <div>
-            <h1 className="detail-title">{restaurant.name}</h1>
-            {restaurant.rating && (
-              <div className="detail-rating">
-                ⭐ {restaurant.rating}
-                {restaurant.price_level && (
-                  <span className="price-level">
-                    {' • ' + '$'.repeat(restaurant.price_level)}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-          <button className="close-button" onClick={onClose}>❌</button>
+  const DetailContent = (
+    <div className="restaurant-detail-content">
+      {/* Header */}
+      <div className="detail-header">
+        <div>
+          <h1 className="detail-title">{restaurant.name}</h1>
+          {restaurant.rating && (
+            <div className="detail-rating">
+              ⭐ {restaurant.rating}
+              {restaurant.price_level && (
+                <span className="price-level">
+                  {' • ' + '$'.repeat(restaurant.price_level)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
+        <button className="close-button" onClick={onClose}>❌</button>
+      </div>
 
-        {/* Photos */}
-        {photos.length > 0 && (
-          <div className="detail-photos">
-            <div className="photos-grid">
-              {photos.slice(0, 3).map((photo, index) => (
-                <img 
-                  key={index}
-                  src={photo.url} 
-                  alt={`${restaurant.name} photo ${index + 1}`}
-                  className="restaurant-photo"
-                />
-              ))}
+      {/* Photos */}
+      {photos.length > 0 && (
+        <div className="detail-photos">
+          <div className="photos-grid">
+            {photos.slice(0, 3).map((photo, index) => (
+              <img 
+                key={index}
+                src={photo.url} 
+                alt={`${restaurant.name} photo ${index + 1}`}
+                className="restaurant-photo"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Address & Contact */}
+      <div className="detail-section">
+        {restaurant.address && (
+          <div className="detail-item">
+            <div className="item-label">📍 Address</div>
+            <div className="item-value">{restaurant.address}</div>
+          </div>
+        )}
+
+        {restaurant.phone && (
+          <div className="detail-item">
+            <div className="item-label">📞 Phone</div>
+            <div className="item-value">
+              <a href={`tel:${restaurant.phone}`} className="contact-link">
+                {formatPhoneNumber(restaurant.phone)}
+              </a>
             </div>
           </div>
         )}
 
-        {/* Address & Contact */}
+        {restaurant.website && (
+          <div className="detail-item">
+            <div className="item-label">🌐 Website</div>
+            <div className="item-value">
+              <a 
+                href={restaurant.website} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="contact-link"
+              >
+                Visit Website →
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Hours */}
+      {hours && hours.weekdayText && (
         <div className="detail-section">
-          {restaurant.address && (
-            <div className="detail-item">
-              <div className="item-label">📍 Address</div>
-              <div className="item-value">{restaurant.address}</div>
-            </div>
-          )}
-
-          {restaurant.phone && (
-            <div className="detail-item">
-              <div className="item-label">📞 Phone</div>
-              <div className="item-value">
-                <a href={`tel:${restaurant.phone}`} className="contact-link">
-                  {formatPhoneNumber(restaurant.phone)}
-                </a>
+          <div className="section-title">🕐 Hours</div>
+          <div className="hours-list">
+            {hours.weekdayText.map((dayHours, index) => (
+              <div key={index} className="hours-item">
+                {dayHours}
               </div>
-            </div>
-          )}
-
-          {restaurant.website && (
-            <div className="detail-item">
-              <div className="item-label">🌐 Website</div>
-              <div className="item-value">
-                <a 
-                  href={restaurant.website} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="contact-link"
-                >
-                  Visit Website →
-                </a>
-              </div>
+            ))}
+          </div>
+          {hours.openNow !== undefined && (
+            <div className={`open-status ${hours.openNow ? 'open' : 'closed'}`}>
+              {hours.openNow ? '🟢 Open Now' : '🔴 Closed'}
             </div>
           )}
         </div>
+      )}
 
-        {/* Hours */}
-        {hours && hours.weekdayText && (
-          <div className="detail-section">
-            <div className="section-title">🕐 Hours</div>
-            <div className="hours-list">
-              {hours.weekdayText.map((dayHours, index) => (
-                <div key={index} className="hours-item">
-                  {dayHours}
-                </div>
-              ))}
-            </div>
-            {hours.openNow !== undefined && (
-              <div className={`open-status ${hours.openNow ? 'open' : 'closed'}`}>
-                {hours.openNow ? '🟢 Open Now' : '🔴 Closed'}
-              </div>
-            )}
+      {/* Personal Notes */}
+      <div className="detail-section">
+        <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>📝 Personal Notes</span>
+          {!editMode && (
+            <button onClick={() => {
+              setEditMode(true)
+              setTimeout(() => {
+                if (notesTextareaRef.current) notesTextareaRef.current.focus()
+              }, 0)
+            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1em', color: '#3b82f6', marginLeft: 8 }} title="Edit notes">✏️</button>
+          )}
+        </div>
+        {editMode ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <textarea
+              ref={notesTextareaRef}
+              value={editNotes}
+              onChange={e => setEditNotes(e.target.value)}
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px',
+                resize: 'vertical',
+                marginBottom: '12px'
+              }}
+              placeholder="Add your personal notes..."
+              autoFocus
+            />
+            <button onClick={handleSave} disabled={saving} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 12px', fontWeight: 600, cursor: 'pointer', fontSize: '1em' }} title="Save notes">💾</button>
           </div>
-        )}
-
-        {/* Personal Notes */}
-        {savedRec.user_notes && (
-          <div className="detail-section">
-            <div className="section-title">📝 Your Notes</div>
+        ) : (
+          savedRec.user_notes ? (
             <div className="personal-notes">{savedRec.user_notes}</div>
-          </div>
+          ) : (
+            <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No notes yet.</div>
+          )
         )}
+      </div>
 
-        {/* Tags */}
-        {savedRec.tags && savedRec.tags.length > 0 && (
-          <div className="detail-section">
-            <div className="section-title">🏷️ Tags</div>
+      {/* Tags */}
+      <div className="detail-section">
+        <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>🏷️ Tags</span>
+          {!editMode && (
+            <button onClick={() => {
+              setEditMode(true)
+              setTimeout(() => {
+                if (tagInputRef.current) tagInputRef.current.focus()
+              }, 0)
+            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1em', color: '#3b82f6', marginLeft: 8 }} title="Edit tags">✏️</button>
+          )}
+        </div>
+        {editMode ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px', marginBottom: '12px', alignItems: 'center' }}>
+            {editTags.map((tag, idx) => (
+              <span key={tag} style={{ background: '#eff6ff', color: '#3b82f6', padding: '4px 8px', borderRadius: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>
+                {tag}
+                <button onClick={() => handleRemoveTag(tag)} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1em' }} title="Remove tag">×</button>
+              </span>
+            ))}
+            <input
+              ref={tagInputRef}
+              type="text"
+              onKeyDown={handleTagInputKeyDown}
+              placeholder="Add tag"
+              style={{
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.95em',
+                minWidth: 60,
+                maxWidth: 90,
+                background: '#3b82f6',
+                color: 'white',
+                borderRadius: '8px',
+                padding: '4px 12px',
+                marginLeft: '4px',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                '::placeholder': { color: 'white', opacity: 1 },
+              }}
+            />
+            <button onClick={handleSave} disabled={saving} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 12px', fontWeight: 600, cursor: 'pointer', fontSize: '1em' }} title="Save tags">💾</button>
+          </div>
+        ) : (
+          savedRec.tags && savedRec.tags.length > 0 ? (
             <div className="restaurant-tags">
               {savedRec.tags.map((tag, index) => (
                 <span key={index} className="tag">
@@ -162,398 +298,235 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
                 </span>
               ))}
             </div>
-          </div>
+          ) : (
+            <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No tags yet.</div>
+          )
         )}
+      </div>
 
-        {/* Reviews */}
-        {reviews.length > 0 && (
-          <div className="detail-section">
-            <div className="section-title">💬 Recent Reviews</div>
-            <div className="reviews-list">
-              {reviews.slice(0, 2).map((review, index) => (
-                <div key={index} className="review-item">
-                  <div className="review-header">
-                    <span className="review-rating">⭐ {review.rating}</span>
-                    <span className="review-author">{review.author}</span>
-                  </div>
-                  <div className="review-text">{review.text}</div>
-                  <div className="review-time">{review.time}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Source Info */}
+      {/* Reviews */}
+      {reviews.length > 0 && (
         <div className="detail-section">
-          <div className="section-title">ℹ️ Source</div>
-          <div className="source-info">
-            <span className="source-type">
-              {savedRec.source_type === 'instagram' ? '📷 Instagram Import' : '✏️ Manual Entry'}
-            </span>
-            <span className="source-date">
-              Added {new Date(savedRec.created_at).toLocaleDateString()}
-            </span>
+          <div className="section-title">💬 Recent Reviews</div>
+          <div className="reviews-list">
+            {reviews.slice(0, 2).map((review, index) => (
+              <div key={index} className="review-item">
+                <div className="review-header">
+                  <span className="review-rating">⭐ {review.rating}</span>
+                  <span className="review-author">{review.author}</span>
+                </div>
+                <div className="review-text">{review.text}</div>
+                <div className="review-time">{review.time}</div>
+              </div>
+            ))}
           </div>
-          {sourceData.sentiment && (
-            <div className="sentiment-info">
-              Mood: {sourceData.sentiment}
-            </div>
-          )}
         </div>
+      )}
 
-        {/* Action Buttons */}
-        <div className="detail-actions">
-          <button className="action-button primary" onClick={handleGetDirections}>
-            🗺️ Get Directions
-          </button>
-          <button className="action-button secondary" onClick={() => onEdit(savedRec)}>
-            ✏️ Edit
-          </button>
-          <button 
-            className="action-button danger" 
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            🗑️ Delete
-          </button>
+      {/* Source Info */}
+      <div className="detail-section">
+        <div className="section-title">ℹ️ Source</div>
+        <div className="source-info">
+          <span className="source-type">
+            {savedRec.source_type === 'instagram' ? '📷 Instagram Import' : '✏️ Manual Entry'}
+          </span>
+          <span className="source-date">
+            Added {new Date(savedRec.created_at).toLocaleDateString()}
+          </span>
         </div>
-
-        {/* Delete Confirmation */}
-        {showDeleteConfirm && (
-          <div className="delete-confirm">
-            <p>Are you sure you want to delete this restaurant?</p>
-            <div className="confirm-actions">
-              <button className="action-button danger" onClick={handleDelete}>
-                Yes, Delete
-              </button>
-              <button 
-                className="action-button secondary" 
-                onClick={() => setShowDeleteConfirm(false)}
-              >
-                Cancel
-              </button>
-            </div>
+        {sourceData.sentiment && (
+          <div className="sentiment-info">
+            Mood: {sourceData.sentiment}
           </div>
         )}
       </div>
 
-      <style jsx>{`
-        .restaurant-detail-modal {
-          max-width: 600px;
-          max-height: 90vh;
-          padding: 0;
-          overflow-y: auto;
-          overflow-x: hidden;
-          display: flex;
-          flex-direction: column;
-        }
+      {/* Action Buttons */}
+      <div className="detail-actions">
+        <button className="action-button primary" onClick={handleGetDirections}>
+          🗺️ Get Directions
+        </button>
+        {editMode ? (
+          <>
+            <button className="action-button primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button className="action-button secondary" onClick={() => setEditMode(false)} disabled={saving}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button className="action-button secondary" onClick={() => setEditMode(true)}>
+            ✏️ Edit
+          </button>
+        )}
+        <button 
+          className="action-button danger" 
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          🗑️ Delete
+        </button>
+      </div>
 
-        .detail-header {
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="delete-confirm">
+          <p>Are you sure you want to delete this restaurant?</p>
+          <div className="confirm-actions">
+            <button className="action-button danger" onClick={handleDelete}>
+              Yes, Delete
+            </button>
+            <button 
+              className="action-button secondary" 
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  const ModalWrapper = ({ children }) => (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {isModal ? <ModalWrapper>{DetailContent}</ModalWrapper> : DetailContent}
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          z-index: 1001;
+        }
+        .modal {
+          background: white;
+          border-radius: 20px 20px 0 0;
+          width: 100%;
+          max-width: 600px;
+          max-height: 85vh;
+          overflow-y: auto;
           padding: 20px;
-          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: calc(90px + env(safe-area-inset-bottom));
+        }
+        .detail-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          background: white;
-          position: sticky;
-          top: 0;
-          z-index: 10;
-          flex-shrink: 0;
+          padding-bottom: 16px;
+          border-bottom: 1px solid #e2e8f0;
         }
-
         .detail-title {
           font-size: 1.5rem;
           font-weight: 700;
-          color: #1e293b;
-          margin: 0 0 4px 0;
+          margin: 0;
         }
-
-        .detail-rating {
-          font-size: 0.9rem;
-          color: #64748b;
-        }
-
-        .price-level {
-          color: #10b981;
-          font-weight: 600;
-        }
-
-        .close-button {
-          background: none;
-          border: none;
-          font-size: 1.2rem;
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
-          min-width: 32px;
-          min-height: 32px;
-        }
-
-        .detail-photos {
-          padding: 0 20px 20px 20px;
-        }
-
-        .photos-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 12px;
-          margin-top: 16px;
-        }
-
-        .restaurant-photo {
-          width: 100%;
-          height: 120px;
-          object-fit: cover;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
         .detail-section {
-          padding: 16px 20px;
-          border-bottom: 1px solid #f1f5f9;
+          margin-bottom: 20px;
         }
-
         .section-title {
+          font-size: 1.2rem;
           font-weight: 600;
-          color: #374151;
-          margin-bottom: 12px;
-          font-size: 0.95rem;
+          margin-bottom: 8px;
         }
-
-        .detail-item {
-          margin-bottom: 12px;
-        }
-
         .item-label {
-          font-size: 0.85rem;
-          color: #64748b;
-          margin-bottom: 4px;
+          font-weight: 600;
         }
-
         .item-value {
-          color: #1e293b;
-          line-height: 1.4;
+          margin-top: 4px;
         }
-
         .contact-link {
           color: #3b82f6;
           text-decoration: none;
-          font-weight: 500;
         }
-
         .contact-link:hover {
           text-decoration: underline;
         }
-
-        .hours-list {
-          font-size: 0.9rem;
-          line-height: 1.5;
+        .detail-photos {
+          margin-bottom: 20px;
         }
-
-        .hours-item {
-          padding: 2px 0;
-          color: #374151;
-        }
-
-        .open-status {
-          margin-top: 8px;
-          font-weight: 600;
-          font-size: 0.9rem;
-        }
-
-        .open-status.open {
-          color: #10b981;
-        }
-
-        .open-status.closed {
-          color: #ef4444;
-        }
-
-        .personal-notes {
-          background: #f8fafc;
-          padding: 12px;
-          border-radius: 8px;
-          color: #374151;
-          line-height: 1.5;
-          font-style: italic;
-        }
-
-        .reviews-list {
+        .photos-grid {
           display: flex;
-          flex-direction: column;
-          gap: 12px;
+          gap: 10px;
         }
-
-        .review-item {
-          background: #f8fafc;
-          padding: 12px;
+        .restaurant-photo {
+          width: 100px;
+          height: 100px;
+          object-fit: cover;
           border-radius: 8px;
         }
-
-        .review-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 6px;
-        }
-
-        .review-rating {
-          font-weight: 600;
-          color: #f59e0b;
-        }
-
-        .review-author {
-          font-size: 0.85rem;
-          color: #64748b;
-        }
-
-        .review-text {
-          color: #374151;
-          line-height: 1.4;
-          margin-bottom: 6px;
-          font-size: 0.9rem;
-        }
-
-        .review-time {
-          font-size: 0.8rem;
-          color: #64748b;
-        }
-
-        .source-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.9rem;
-        }
-
-        .source-type {
-          color: #374151;
-          font-weight: 500;
-        }
-
-        .source-date {
-          color: #64748b;
-        }
-
-        .sentiment-info {
-          margin-top: 6px;
-          font-size: 0.85rem;
-          color: #64748b;
-        }
-
         .detail-actions {
-          padding: 20px 20px calc(90px + 20px) 20px; /* Extra bottom padding for bottom nav */
           display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          background: #f8fafc;
-          border-top: 1px solid #e2e8f0;
+          justify-content: flex-end;
+          gap: 10px;
         }
-
         .action-button {
-          flex: 1;
-          min-width: 140px;
-          padding: 12px 16px;
+          padding: 8px 16px;
           border: none;
-          border-radius: 8px;
+          border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s;
-          font-size: 0.9rem;
         }
-
-        .action-button.primary {
+        .primary {
           background: #3b82f6;
           color: white;
         }
-
-        .action-button.primary:hover {
-          background: #2563eb;
-        }
-
-        .action-button.secondary {
+        .secondary {
           background: #e2e8f0;
-          color: #374151;
+          color: #3b82f6;
         }
-
-        .action-button.secondary:hover {
-          background: #cbd5e1;
-        }
-
-        .action-button.danger {
+        .danger {
           background: #ef4444;
           color: white;
         }
-
-        .action-button.danger:hover {
-          background: #dc2626;
-        }
-
         .delete-confirm {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background: #fef2f2;
-          border: 1px solid #fca5a5;
-          padding: 16px 20px;
-          text-align: center;
+          margin-top: 20px;
+          padding: 16px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
         }
-
-        .delete-confirm p {
-          margin-bottom: 12px;
-          color: #dc2626;
-          font-weight: 500;
-        }
-
         .confirm-actions {
           display: flex;
-          gap: 12px;
-          justify-content: center;
+          justify-content: flex-end;
+          gap: 10px;
         }
-
-        .confirm-actions .action-button {
-          flex: 0 0 auto;
-          min-width: 100px;
+        .open-status {
+          margin-top: 8px;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-weight: 600;
         }
-
-        /* Mobile optimizations */
-        @media (max-width: 640px) {
-          .detail-header {
-            padding: 16px;
-          }
-
-          .detail-title {
-            font-size: 1.25rem;
-          }
-
-          .detail-photos {
-            padding: 0 16px 16px 16px;
-          }
-
-          .photos-grid {
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-          }
-
-          .restaurant-photo {
-            height: 100px;
-          }
-
-          .detail-section {
-            padding: 12px 16px;
-          }
-
-          .detail-actions {
-            padding: 16px 16px calc(90px + 16px) 16px; /* Extra bottom padding for bottom nav */
-          }
-
-          .action-button {
-            min-width: 120px;
-            padding: 10px 12px;
-            font-size: 0.85rem;
-          }
+        .open {
+          background: #d1fae5;
+          color: #15803d;
+        }
+        .closed {
+          background: #fef2f2;
+          color: #b91c1c;
+        }
+        .restaurant-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .tag {
+          background: #eff6ff;
+          color: #3b82f6;
+          padding: 4px 8px;
+          border-radius: 8px;
+          font-size: 0.9em;
         }
       `}</style>
-    </div>
+    </>
   )
 } 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import RestaurantDetail from './RestaurantDetail'
 
-export default function RestaurantList({ restaurants, onRestaurantUpdate, onRestaurantDelete }) {
+export default function RestaurantList({ restaurants, onRestaurantUpdate, onRestaurantDelete, supabase }) {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null)
   const [selectedSavedRec, setSelectedSavedRec] = useState(null)
 
@@ -25,10 +25,10 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
     setSelectedSavedRec(null)
   }
 
-  const handleEdit = (savedRec) => {
-    // For now, just close the modal - we'll implement editing next
-    handleCloseDetail()
-    console.log('Edit restaurant:', savedRec)
+  const handleEdit = (updatedSavedRec) => {
+    setSelectedSavedRec(updatedSavedRec)
+    if (onRestaurantUpdate) onRestaurantUpdate()
+    console.log('Edit restaurant:', updatedSavedRec)
   }
 
   const handleDelete = async (savedRecId) => {
@@ -86,6 +86,7 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
           onClose={handleCloseDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          supabase={supabase}
         />
       )}
 

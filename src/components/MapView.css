@@ -1,0 +1,55 @@
+.bottom-sheet-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bottom-sheet {
+  width: 100vw;
+  max-width: 500px;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -2px 16px rgba(0,0,0,0.12);
+  overflow-y: auto;
+  animation: slideUp 0.25s cubic-bezier(0.4,0,0.2,1);
+  transition: transform 0.2s ease-out;
+  touch-action: none; /* Prevent default touch actions */
+}
+
+.bottom-sheet.half {
+  max-height: 50vh;
+}
+
+.bottom-sheet.full {
+  max-height: 85vh;
+}
+
+.bottom-sheet.dragging {
+  transition: none; /* Disable transition while dragging */
+}
+
+.drag-handle {
+  width: 40px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin: 12px auto;
+  cursor: grab;
+  touch-action: none; /* Prevent default touch actions */
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+} 
