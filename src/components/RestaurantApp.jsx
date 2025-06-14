@@ -78,8 +78,9 @@ export default function RestaurantApp({ session, supabase }) {
 
       if (error) throw error
       
-      // Refresh the restaurant list
-      fetchRestaurants()
+      // Remove from local state immediately
+      setRestaurants(prev => prev.filter(rec => rec.id !== savedRecId));
+      setFilteredRestaurants(prev => prev.filter(rec => rec.id !== savedRecId));
     } catch (error) {
       console.error('Error deleting restaurant:', error)
       alert('Failed to delete restaurant. Please try again.')

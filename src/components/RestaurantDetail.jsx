@@ -97,6 +97,8 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
   const handleDelete = () => {
     onDelete(savedRec.id)
+    // Immediately refresh the restaurant list to update the UI
+    fetchRestaurants()
     if (isModal) {
       onClose()
     }
@@ -393,7 +395,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
-        <div className="delete-confirm">
+        <div className="delete-confirm" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', zIndex: 1002 }}>
           <p>Are you sure you want to delete this restaurant?</p>
           <div className="confirm-actions">
             <button className="action-button danger" onClick={handleDelete}>
