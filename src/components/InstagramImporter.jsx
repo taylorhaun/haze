@@ -823,6 +823,7 @@ Return detailed JSON: {
         restaurant_id: restaurant.id,
         source_type: 'manual',
         user_notes: notes.trim() || null,
+        tags: editableTags,
       }
 
       // Add enhanced data to source_data if available
@@ -900,8 +901,68 @@ Return detailed JSON: {
     })
   }, [restaurantName, activeTab, googleMaps])
 
+  // Generate smart tags based on Google Places data
+  const generateManualTags = async (placeDetails) => {
+    if (import.meta.env.VITE_OPENAI_API_KEY === 'placeholder') {
+      // Fallback tags based on place types and data
+      const fallbackTags = []
+      
+      if (placeDetails.types) {
+        if (placeDetails.types.includes('restaurant')) fallbackTags.push('restaurant')
+        if (placeDetails.types.includes('bar')) fallbackTags.push('bar')
+        if (placeDetails.types.includes('cafe')) fallbackTags.push('cafe')
+        if (placeDetails.types.includes('bakery')) fallbackTags.push('bakery')
+      }
+      
+      if (placeDetails.priceLevel) {
+        if (placeDetails.priceLevel <= 2) fallbackTags.push('affordable')
+        if (placeDetails.priceLevel >= 3) fallbackTags.push('upscale')
+      }
+      
+      if (placeDetails.rating >= 4.5) fallbackTags.push('highly-rated')
+      
+      return fallbackTags.slice(0, 3) // Limit to 3 tags
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'Generate 3-4 relevant tags for a restaurant based on its Google Places data. Focus on cuisine type, atmosphere, price level, and notable features. Return only a JSON array of strings: ["tag1", "tag2", "tag3"]'
+            },
+            {
+              role: 'user',
+              content: `Generate tags for: ${placeDetails.name} - ${placeDetails.address}. Types: ${placeDetails.types?.join(', ')}. Rating: ${placeDetails.rating}. Price level: ${placeDetails.priceLevel}. Reviews mention: ${placeDetails.reviews?.map(r => r.text).join(' ').slice(0, 200)}`
+            }
+          ],
+          max_tokens: 100,
+          temperature: 0.3
+        })
+      })
+
+      const data = await response.json()
+      const tags = JSON.parse(data.choices[0].message.content)
+      return Array.isArray(tags) ? tags.slice(0, 4) : []
+    } catch (error) {
+      console.error('Tag generation failed:', error)
+      // Fallback to simple tags
+      const fallbackTags = ['restaurant']
+      if (placeDetails.rating >= 4.5) fallbackTags.push('highly-rated')
+      if (placeDetails.priceLevel <= 2) fallbackTags.push('affordable')
+      return fallbackTags
+    }
+  }
+
   // On suggestion click, fetch full place details and fill fields
-  const handleManualSuggestionClick = (suggestion) => {
+  const handleManualSuggestionClick = async (suggestion) => {
     setRestaurantName(suggestion.description)
     setManualSuggestions([])
     setManualPlaceId(suggestion.place_id)
@@ -918,11 +979,11 @@ Return detailed JSON: {
           'name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'price_level', 'geometry',
           'opening_hours', 'photos', 'reviews', 'types'
         ]
-      }, (place, status) => {
+      }, async (place, status) => {
         console.log('Google Places details:', place, status)
         if (status === googleMaps.maps.places.PlacesServiceStatus.OK && place) {
           setAddress(place.formatted_address || '')
-          setManualPlaceDetails({
+          const placeDetails = {
             name: place.name,
             address: place.formatted_address,
             phone: place.formatted_phone_number,
@@ -946,7 +1007,12 @@ Return detailed JSON: {
               time: review.relative_time_description
             })) : [],
             types: place.types
-          })
+          }
+          setManualPlaceDetails(placeDetails)
+          
+          // Generate and set smart tags
+          const smartTags = await generateManualTags(placeDetails)
+          setEditableTags(smartTags)
         } else {
           console.warn('Google Places details fetch failed:', status, place)
         }
@@ -1451,6 +1517,40 @@ Return detailed JSON: {
                 }}
                 placeholder="Add your personal notes..."
               />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Tags
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                {editableTags.map((tag, idx) => (
+                  <span key={tag} style={{ background: '#eff6ff', color: '#3b82f6', padding: '4px 8px', borderRadius: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>
+                    {tag}
+                    <button onClick={() => handleRemoveTag(tag)} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1em' }} title="Remove tag">×</button>
+                  </span>
+                ))}
+                <input
+                  ref={tagInputRef}
+                  type="text"
+                  onKeyDown={handleTagInputKeyDown}
+                  placeholder="Add tag"
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '0.95em',
+                    minWidth: 60,
+                    maxWidth: 90,
+                    background: '#3b82f6',
+                    color: 'white',
+                    borderRadius: '8px',
+                    padding: '4px 12px',
+                    marginLeft: '4px',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    '::placeholder': { color: 'white', opacity: 1 },
+                  }}
+                />
+              </div>
             </div>
             {/* Show Google Places details if available */}
             {manualPlaceDetails && (

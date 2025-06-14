@@ -95,12 +95,16 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
   const reviews = sourceData.reviews || []
   const hours = restaurant.hours || sourceData.hours
 
-  const handleDelete = () => {
-    onDelete(savedRec.id)
-    // Immediately refresh the restaurant list to update the UI
-    fetchRestaurants()
-    if (isModal) {
+  const handleDelete = async () => {
+    try {
+      await onDelete(savedRec.id)
+      // Close the delete confirmation modal
+      setShowDeleteConfirm(false)
+      // Always close the restaurant detail (whether modal or bottom sheet)
       onClose()
+    } catch (error) {
+      console.error('Delete failed:', error)
+      alert('Failed to delete restaurant. Please try again.')
     }
   }
 
