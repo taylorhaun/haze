@@ -25,6 +25,14 @@ export default function InstagramImporter({ supabase, session, onClose, onRestau
   const [editableNotes, setEditableNotes] = useState('')
   const tagInputRef = useRef(null)
 
+  // Add state for Google Places Autocomplete in manual entry
+  const [manualSuggestions, setManualSuggestions] = useState([])
+  const [manualAutocompleteLoading, setManualAutocompleteLoading] = useState(false)
+  const [manualPlaceId, setManualPlaceId] = useState(null)
+
+  // Add state for Google Places details in manual entry
+  const [manualPlaceDetails, setManualPlaceDetails] = useState(null)
+
   // When extractedData changes, update editable fields
   useEffect(() => {
     if (extractedData) {
@@ -784,27 +792,53 @@ Return detailed JSON: {
 
     setLoading(true)
     try {
-      // Create restaurant
+      // Create restaurant with basic info only
+      const restaurantData = manualPlaceDetails ? {
+        name: manualPlaceDetails.name,
+        address: manualPlaceDetails.address,
+        latitude: manualPlaceDetails.latitude,
+        longitude: manualPlaceDetails.longitude,
+        google_place_id: manualPlaceDetails.placeId,
+        phone: manualPlaceDetails.phone,
+        website: manualPlaceDetails.website,
+        rating: manualPlaceDetails.rating,
+        price_level: manualPlaceDetails.priceLevel,
+        hours: manualPlaceDetails.hours,
+      } : {
+        name: restaurantName.trim(),
+        address: address.trim() || null,
+      }
+
       const { data: restaurant, error: restaurantError } = await supabase
         .from('restaurants')
-        .insert([{
-          name: restaurantName.trim(),
-          address: address.trim() || null,
-        }])
+        .insert([restaurantData])
         .select()
         .single()
 
       if (restaurantError) throw restaurantError
 
-      // Create saved recommendation
+      // Create saved recommendation with enhanced data in source_data
+      const savedRecData = {
+        user_id: session.user.id,
+        restaurant_id: restaurant.id,
+        source_type: 'manual',
+        user_notes: notes.trim() || null,
+      }
+
+      // Add enhanced data to source_data if available
+      if (manualPlaceDetails) {
+        savedRecData.source_data = {
+          photos: manualPlaceDetails.photos || [],
+          reviews: manualPlaceDetails.reviews || [],
+          types: manualPlaceDetails.types || [],
+          confidence: 'google-places',
+          extraction_method: 'manual-google-places'
+        }
+      }
+
       const { error: savedRecError } = await supabase
         .from('saved_recs')
-        .insert([{
-          user_id: session.user.id,
-          restaurant_id: restaurant.id,
-          source_type: 'manual',
-          user_notes: notes.trim() || null,
-        }])
+        .insert([savedRecData])
 
       if (savedRecError) throw savedRecError
 
@@ -841,6 +875,85 @@ Return detailed JSON: {
   }
   const handleRemoveScreenshotTag = (tag) => {
     setScreenshotEditableTags(screenshotEditableTags.filter(t => t !== tag))
+  }
+
+  // Fetch suggestions as user types
+  useEffect(() => {
+    if (activeTab !== 'manual' || !googleMaps) return
+    if (!restaurantName.trim()) {
+      setManualSuggestions([])
+      return
+    }
+    setManualAutocompleteLoading(true)
+    const service = new googleMaps.maps.places.AutocompleteService()
+    service.getPlacePredictions({
+      input: restaurantName,
+      types: ['establishment'],
+      componentRestrictions: { country: 'us' }, // Optional: restrict to US
+    }, (predictions, status) => {
+      setManualAutocompleteLoading(false)
+      if (status === googleMaps.maps.places.PlacesServiceStatus.OK && predictions) {
+        setManualSuggestions(predictions)
+      } else {
+        setManualSuggestions([])
+      }
+    })
+  }, [restaurantName, activeTab, googleMaps])
+
+  // On suggestion click, fetch full place details and fill fields
+  const handleManualSuggestionClick = (suggestion) => {
+    setRestaurantName(suggestion.description)
+    setManualSuggestions([])
+    setManualPlaceId(suggestion.place_id)
+    if (
+      googleMaps &&
+      googleMaps.maps &&
+      googleMaps.maps.places &&
+      googleMaps.maps.places.PlacesServiceStatus
+    ) {
+      const service = new googleMaps.maps.places.PlacesService(document.createElement('div'))
+      service.getDetails({
+        placeId: suggestion.place_id,
+        fields: [
+          'name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'price_level', 'geometry',
+          'opening_hours', 'photos', 'reviews', 'types'
+        ]
+      }, (place, status) => {
+        console.log('Google Places details:', place, status)
+        if (status === googleMaps.maps.places.PlacesServiceStatus.OK && place) {
+          setAddress(place.formatted_address || '')
+          setManualPlaceDetails({
+            name: place.name,
+            address: place.formatted_address,
+            phone: place.formatted_phone_number,
+            website: place.website,
+            rating: place.rating,
+            priceLevel: place.price_level,
+            placeId: suggestion.place_id,
+            latitude: place.geometry?.location?.lat(),
+            longitude: place.geometry?.location?.lng(),
+            hours: place.opening_hours ? {
+              weekdayText: place.opening_hours.weekday_text,
+              openNow: place.opening_hours.open_now
+            } : null,
+            photos: place.photos ? place.photos.slice(0, 3).map(photo => ({
+              url: photo.getUrl({ maxWidth: 400, maxHeight: 400 })
+            })) : [],
+            reviews: place.reviews ? place.reviews.slice(0, 3).map(review => ({
+              rating: review.rating,
+              text: review.text,
+              author: review.author_name,
+              time: review.relative_time_description
+            })) : [],
+            types: place.types
+          })
+        } else {
+          console.warn('Google Places details fetch failed:', status, place)
+        }
+      })
+    } else {
+      console.error('Google Maps Places library not loaded!')
+    }
   }
 
   return (
@@ -937,8 +1050,8 @@ Return detailed JSON: {
           <div>
             <form onSubmit={handleInstagramImport} style={{ padding: '0 16px' }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                  Instagram Post URL
+                <label htmlFor="instagram-url" style={{ fontWeight: 600, fontSize: '15px', color: '#1e293b', marginBottom: '8px', display: 'block' }}>
+                  Instagram Profile URL
                 </label>
                 <input
                   type="url"
@@ -1245,15 +1358,18 @@ Return detailed JSON: {
         {/* Manual Entry Tab */}
         {activeTab === 'manual' && (
           <form onSubmit={handleManualSubmit} style={{ padding: '0 16px' }}>
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '16px', position: 'relative' }}>
               <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                Restaurant Name *
+                Restaurant Name
               </label>
               <input
                 type="text"
                 value={restaurantName}
-                onChange={(e) => setRestaurantName(e.target.value)}
-                placeholder="Enter restaurant name"
+                onChange={e => {
+                  setRestaurantName(e.target.value)
+                  setManualPlaceId(null)
+                }}
+                placeholder="e.g. Joe's Pizza"
                 required
                 style={{
                   width: '100%',
@@ -1262,9 +1378,42 @@ Return detailed JSON: {
                   borderRadius: '8px',
                   fontSize: '16px'
                 }}
+                autoComplete="off"
               />
+              {/* Suggestions dropdown */}
+              {manualSuggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  background: 'white',
+                  border: '1px solid #d1d5db',
+                  borderTop: 'none',
+                  borderRadius: '0 0 8px 8px',
+                  zIndex: 1000,
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}>
+                  {manualSuggestions.map(suggestion => (
+                    <div
+                      key={suggestion.place_id}
+                      onClick={() => handleManualSuggestionClick(suggestion)}
+                      style={{
+                        padding: '10px 14px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #f1f5f9',
+                        background: '#fff',
+                        fontSize: 15
+                      }}
+                    >
+                      {suggestion.description}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
                 Address
@@ -1272,8 +1421,8 @@ Return detailed JSON: {
               <input
                 type="text"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Enter address (optional)"
+                onChange={e => setAddress(e.target.value)}
+                placeholder="123 Main St, City, State"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -1281,59 +1430,106 @@ Return detailed JSON: {
                   borderRadius: '8px',
                   fontSize: '16px'
                 }}
+                autoComplete="off"
               />
             </div>
-
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                Notes
+                Personal Notes
               </label>
               <textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any notes about this restaurant?"
-                rows={3}
+                onChange={e => setNotes(e.target.value)}
+                rows={2}
                 style={{
                   width: '100%',
-                  padding: '12px',
+                  padding: '8px',
                   border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  resize: 'vertical'
+                  borderRadius: '6px',
+                  fontSize: '15px',
+                  resize: 'vertical',
                 }}
+                placeholder="Add your personal notes..."
               />
             </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  padding: '8px 16px',
-                  background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading || !restaurantName.trim()}
-                style={{
-                  padding: '8px 16px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  opacity: loading || !restaurantName.trim() ? 0.6 : 1
-                }}
-              >
-                {loading ? 'Saving...' : 'Save Restaurant'}
-              </button>
-            </div>
+            {/* Show Google Places details if available */}
+            {manualPlaceDetails && (
+              <div style={{ background: '#f8fafc', borderRadius: 8, padding: 12, marginBottom: 16, border: '1px solid #e5e7eb' }}>
+                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Google Places Details</div>
+                <div style={{ marginBottom: 6 }}>
+                  <strong>Name:</strong> {manualPlaceDetails.name}
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <strong>Address:</strong> {manualPlaceDetails.address}
+                </div>
+                {manualPlaceDetails.phone && (
+                  <div style={{ marginBottom: 6 }}>
+                    <strong>Phone:</strong> {manualPlaceDetails.phone}
+                  </div>
+                )}
+                {manualPlaceDetails.rating && (
+                  <div style={{ marginBottom: 6 }}>
+                    <strong>Rating:</strong> {manualPlaceDetails.rating} ⭐
+                  </div>
+                )}
+                {manualPlaceDetails.priceLevel && (
+                  <div style={{ marginBottom: 6 }}>
+                    <strong>Price:</strong> {'$'.repeat(manualPlaceDetails.priceLevel)}
+                  </div>
+                )}
+                {manualPlaceDetails.website && (
+                  <div style={{ marginBottom: 6 }}>
+                    <strong>Website:</strong> <a href={manualPlaceDetails.website} target="_blank" rel="noopener noreferrer">{manualPlaceDetails.website}</a>
+                  </div>
+                )}
+                {manualPlaceDetails.hours && manualPlaceDetails.hours.weekdayText && (
+                  <div style={{ marginBottom: 6 }}>
+                    <strong>Hours:</strong> <span style={{ fontSize: 13 }}>{manualPlaceDetails.hours.weekdayText.join(', ')}</span>
+                  </div>
+                )}
+                {manualPlaceDetails.photos && manualPlaceDetails.photos.length > 0 && (
+                  <div style={{ marginBottom: 6 }}>
+                    <strong>Photos:</strong>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      {manualPlaceDetails.photos.map((photo, idx) => (
+                        <img key={idx} src={photo.url} alt="Restaurant" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {manualPlaceDetails.reviews && manualPlaceDetails.reviews.length > 0 && (
+                  <div style={{ marginBottom: 6 }}>
+                    <strong>Reviews:</strong>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                      {manualPlaceDetails.reviews.map((review, idx) => (
+                        <li key={idx} style={{ marginBottom: 4 }}>
+                          <span style={{ color: '#f59e42' }}>★</span> {review.rating} — "{review.text}" <span style={{ color: '#64748b' }}>by {review.author}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading || !restaurantName.trim()}
+              style={{
+                width: '100%',
+                padding: '12px 0',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                opacity: loading || !restaurantName.trim() ? 0.6 : 1,
+                fontSize: 17,
+                fontWeight: 600,
+                margin: '18px 0 10px 0'
+              }}
+            >
+              {loading ? 'Saving...' : 'Save to haze'}
+            </button>
           </form>
         )}
       </div>

@@ -55,31 +55,29 @@ export default function ProfileTab({ session, onSignOut }) {
         </div>
       </div>
 
-      {/* App Info */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: '16px',
-        padding: '20px',
-        marginBottom: '20px',
-        border: '1px solid rgba(0, 0, 0, 0.1)'
-      }}>
-        <h4 style={{
-          margin: '0 0 12px 0',
+      {/* Feedback Button */}
+      <a
+        href="https://airtable.com/apparNXwegaXpS5Pn/pagmXeuD4LhVx1ICb/form"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'block',
+          width: '100%',
+          background: '#3b82f6',
+          color: 'white',
+          borderRadius: '12px',
+          padding: '16px',
           fontSize: '16px',
-          fontWeight: '600',
-          color: '#1C1C1E'
-        }}>
-          About haze
-        </h4>
-        <p style={{
-          margin: 0,
-          fontSize: '14px',
-          color: '#8E8E93',
-          lineHeight: 1.4
-        }}>
-          Discover and save restaurants from Instagram with AI-powered recommendations and Google Places integration.
-        </p>
-      </div>
+          fontWeight: 600,
+          textAlign: 'center',
+          textDecoration: 'none',
+          marginBottom: '20px',
+          boxShadow: '0 2px 8px rgba(59,130,246,0.10)',
+          transition: 'background 0.2s',
+        }}
+      >
+        💬 Give feedback
+      </a>
 
       {/* Sign Out Button */}
       <button
