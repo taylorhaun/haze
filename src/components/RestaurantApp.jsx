@@ -86,6 +86,10 @@ export default function RestaurantApp({ session, supabase }) {
     }
   }
 
+  const handleRestaurantUpdateInPlace = (updatedSavedRec) => {
+    setRestaurants(prev => prev.map(rec => rec.id === updatedSavedRec.id ? updatedSavedRec : rec));
+  };
+
   const handleFilteredResults = (filtered) => {
     setFilteredRestaurants(filtered)
   }
@@ -193,7 +197,7 @@ export default function RestaurantApp({ session, supabase }) {
               <RestaurantList 
                 restaurants={filteredRestaurants}
                 onRestaurantDelete={handleRestaurantDelete}
-                onRestaurantUpdate={fetchRestaurants}
+                onRestaurantUpdate={handleRestaurantUpdateInPlace}
                 supabase={supabase}
               />
             )}
@@ -203,7 +207,7 @@ export default function RestaurantApp({ session, supabase }) {
       case 'map':
         return (
           <div style={{ paddingBottom: '100px' }}>
-            <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} />
+            <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} onRestaurantUpdate={handleRestaurantUpdateInPlace} />
           </div>
         )
       

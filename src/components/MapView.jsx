@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
 import RestaurantDetail from './RestaurantDetail'
 import './MapView.css'  // We'll create this file next
+import BottomSheet from './BottomSheet'
 
-export default function MapView({ restaurants, supabase, session }) {
+export default function MapView({ restaurants, supabase, session, onRestaurantUpdate }) {
   const mapRef = useRef(null)
   const [map, setMap] = useState(null)
   const [googleMaps, setGoogleMaps] = useState(null)
@@ -838,86 +839,25 @@ Please:
       </button>
 
       {selectedSavedRec && selectedRestaurant && (
-        <>
-          <div 
-            style={{
-              position: 'fixed',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              top: 0,
-              background: 'rgba(0,0,0,0.25)',
-              zIndex: 2000,
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center'
-            }} 
-            onClick={() => { setSelectedSavedRec(null); setSelectedRestaurant(null) }}
-          >
-            <div 
-              style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: `${height}px`,
-                background: 'white',
-                borderTopLeftRadius: '20px',
-                borderTopRightRadius: '20px',
-                boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)',
-                zIndex: 1000,
-                transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                touchAction: 'none',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Drag handle area (minimal, transparent) */}
-              <div
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: '24px',
-                  background: 'transparent',
-                  borderTopLeftRadius: '20px',
-                  borderTopRightRadius: '20px',
-                  zIndex: 10,
-                  flexShrink: 0,
-                  touchAction: 'none'
-                }}
-              >
-                <div
-                  style={{
-                    width: '40px',
-                    height: '5px',
-                    background: '#cbd5e1',
-                    borderRadius: '3px',
-                    cursor: isDragging ? 'grabbing' : 'grab',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                    touchAction: 'none'
-                  }}
-                  onTouchStart={handleDragStart}
-                  onTouchMove={handleDragMove}
-                  onTouchEnd={handleDragEnd}
-                />
-              </div>
-              {/* Scrollable content below the handle */}
-              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '100px' }}>
-                <RestaurantDetail
-                  restaurant={selectedRestaurant}
-                  savedRec={selectedSavedRec}
-                  onClose={() => { setSelectedSavedRec(null); setSelectedRestaurant(null) }}
-                  onDelete={handleDelete}
-                  supabase={supabase}
-                  isModal={false}
-                />
-              </div>
-            </div>
-          </div>
-        </>
+        <BottomSheet
+          open={!!selectedSavedRec}
+          onClose={() => { setSelectedSavedRec(null); setSelectedRestaurant(null); }}
+          defaultHeight="half"
+        >
+          <RestaurantDetail
+            restaurant={selectedRestaurant}
+            savedRec={selectedSavedRec}
+            onClose={() => { setSelectedSavedRec(null); setSelectedRestaurant(null); }}
+            onDelete={handleDelete}
+            supabase={supabase}
+            isModal={false}
+            onEdit={(updatedRec) => {
+              setSelectedSavedRec(updatedRec);
+              setSelectedRestaurant(updatedRec.restaurants);
+              onRestaurantUpdate(updatedRec);
+            }}
+          />
+        </BottomSheet>
       )}
     </div>
   )

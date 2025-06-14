@@ -14,6 +14,12 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
     setEditTags(savedRec.tags || [])
   }, [savedRec])
 
+  useEffect(() => {
+    if (editMode && notesTextareaRef.current) {
+      notesTextareaRef.current.scrollTop = 0;
+    }
+  }, [editMode]);
+
   // Tag input handlers
   const handleTagInputKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
@@ -53,7 +59,14 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
         .eq('id', savedRec.id)
       if (error) throw error
       setEditMode(false)
-      if (onEdit) onEdit({ ...savedRec, user_notes: editNotes, tags: tagsToSave })
+      // Fetch the updated row with joined restaurant
+      const { data: updatedRows, error: fetchError } = await supabase
+        .from('saved_recs')
+        .select('*, restaurants(*)')
+        .eq('id', savedRec.id)
+        .single()
+      if (fetchError) throw fetchError
+      if (onEdit) onEdit(updatedRows)
     } catch (err) {
       alert('Failed to save changes: ' + err.message)
     } finally {
@@ -229,10 +242,20 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
                 borderRadius: '8px',
                 fontSize: '16px',
                 resize: 'vertical',
-                marginBottom: '12px'
+                marginBottom: '12px',
+                minHeight: '100px',
+                overflowY: 'auto'
               }}
               placeholder="Add your personal notes..."
               autoFocus
+              onFocus={() => {
+                if (notesTextareaRef.current) {
+                  const modal = notesTextareaRef.current.closest('.modal');
+                  if (modal) {
+                    modal.scrollTop = notesTextareaRef.current.offsetTop - 20; // 20px padding
+                  }
+                }
+              }}
             />
             <button onClick={handleSave} disabled={saving} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 12px', fontWeight: 600, cursor: 'pointer', fontSize: '1em' }} title="Save notes">💾</button>
           </div>

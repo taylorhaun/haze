@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import RestaurantDetail from './RestaurantDetail'
+import BottomSheet from './BottomSheet'
 
 export default function RestaurantList({ restaurants, onRestaurantUpdate, onRestaurantDelete, supabase }) {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null)
@@ -27,7 +28,7 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
 
   const handleEdit = (updatedSavedRec) => {
     setSelectedSavedRec(updatedSavedRec)
-    if (onRestaurantUpdate) onRestaurantUpdate()
+    if (onRestaurantUpdate) onRestaurantUpdate(updatedSavedRec)
     console.log('Edit restaurant:', updatedSavedRec)
   }
 
@@ -78,16 +79,26 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
         })}
       </div>
 
-      {/* Restaurant Detail Modal */}
+      {/* Restaurant Detail Bottom Sheet */}
       {selectedRestaurant && selectedSavedRec && (
-        <RestaurantDetail
-          restaurant={selectedRestaurant}
-          savedRec={selectedSavedRec}
+        <BottomSheet
+          open={!!selectedSavedRec}
           onClose={handleCloseDetail}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          supabase={supabase}
-        />
+          defaultHeight="full"
+        >
+          <RestaurantDetail
+            restaurant={selectedRestaurant}
+            savedRec={selectedSavedRec}
+            onClose={handleCloseDetail}
+            onEdit={(updatedSavedRec) => {
+              setSelectedSavedRec(updatedSavedRec);
+              if (onRestaurantUpdate) onRestaurantUpdate(updatedSavedRec);
+            }}
+            onDelete={handleDelete}
+            supabase={supabase}
+            isModal={false}
+          />
+        </BottomSheet>
       )}
 
       <style jsx>{`
