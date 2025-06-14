@@ -203,21 +203,21 @@ Please:
 
     // Create user location marker with mobile-optimized styling
     const markerIcon = isMobile ? {
-      // Mobile: Use a larger, simpler marker
+      // Mobile: Use a blue, smaller marker
       path: googleMaps.maps.SymbolPath.CIRCLE,
-      fillColor: '#10b981',
+      fillColor: '#2563eb', // blue
       fillOpacity: 1,
       strokeColor: '#ffffff',
-      strokeWeight: 6, // Thicker border for mobile
-      scale: 16 // Bigger for mobile visibility
+      strokeWeight: 6,
+      scale: 11 // 16 * 0.7 = 11.2
     } : {
-      // Desktop: Regular size
+      // Desktop: Blue, smaller marker
       path: googleMaps.maps.SymbolPath.CIRCLE,
-      fillColor: '#10b981',
+      fillColor: '#2563eb', // blue
       fillOpacity: 1,
       strokeColor: '#ffffff',
       strokeWeight: 4,
-      scale: 12
+      scale: 8 // 12 * 0.7 = 8.4
     }
 
     const userMarker = new googleMaps.maps.Marker({
@@ -236,9 +236,9 @@ Please:
       center: userLocation,
       radius: circleRadius,
       map,
-      fillColor: '#10b981',
+      fillColor: '#2563eb', // blue
       fillOpacity: isMobile ? 0.2 : 0.15, // More visible on mobile
-      strokeColor: '#10b981',
+      strokeColor: '#2563eb', // blue
       strokeOpacity: isMobile ? 0.6 : 0.4,
       strokeWeight: isMobile ? 4 : 3,
       zIndex: 9999 // High z-index for mobile
@@ -375,12 +375,13 @@ Please:
 
       // Create custom marker icon
       const markerIcon = {
-        path: googleMaps.maps.SymbolPath.CIRCLE,
-        fillColor: '#3b82f6',
+        path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+        fillColor: '#EA4335', // Google Maps red
         fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 3,
-        scale: 8
+        strokeColor: '#B31412',
+        strokeWeight: 2,
+        scale: 2,
+        anchor: new googleMaps.maps.Point(12, 24)
       }
 
       // Create marker

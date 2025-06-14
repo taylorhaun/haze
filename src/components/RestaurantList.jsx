@@ -106,6 +106,8 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
           cursor: pointer;
           transition: all 0.2s ease;
           position: relative;
+          padding-left: 20px;
+          padding-right: 20px;
         }
 
         .restaurant-item.clickable:hover {
@@ -136,6 +138,18 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
             text-align: center;
             margin-top: 8px;
             font-size: 0.8rem;
+          }
+        }
+
+        @media (min-width: 768px) {
+          .restaurant-list {
+            padding: 20px;
+          }
+          .restaurant-item {
+            padding-left: 32px;
+            padding-right: 32px;
+            padding-top: 16px;
+            padding-bottom: 16px;
           }
         }
       `}</style>

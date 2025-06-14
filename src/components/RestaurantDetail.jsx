@@ -549,6 +549,16 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           border-radius: 8px;
           font-size: 0.9em;
         }
+        .restaurant-detail-content {
+          padding-left: 10px;
+          padding-right: 10px;
+        }
+        @media (min-width: 768px) {
+          .restaurant-detail-content {
+            padding-left: 30px;
+            padding-right: 30px;
+          }
+        }
       `}</style>
     </>
   )
