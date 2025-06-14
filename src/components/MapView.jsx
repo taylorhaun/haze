@@ -22,8 +22,10 @@ export default function MapView({ restaurants, supabase, session, onRestaurantUp
   const [dragStartHeight, setDragStartHeight] = useState(0)
   const [height, setHeight] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filteredRestaurants, setFilteredRestaurants] = useState([])
   const [isSearching, setIsSearching] = useState(false)
+
+  // Use the parent's filteredRestaurants prop directly
+  const filteredRestaurants = restaurants
 
   // Initialize Google Maps
   useEffect(() => {
@@ -281,7 +283,6 @@ Please:
   // Filter restaurants based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setFilteredRestaurants(restaurants)
       setIsSearching(false)
       return
     }
@@ -302,12 +303,8 @@ Please:
   // Update markers when filtered restaurants change
   useEffect(() => {
     if (!map || !googleMaps) return
-
-    // Clear existing markers
     markers.forEach(marker => marker.setMap(null))
     setMarkers([])
-
-    // Add markers for filtered restaurants
     const newMarkers = filteredRestaurants
       .filter(rec => rec.restaurants?.latitude && rec.restaurants?.longitude)
       .map(rec => {
@@ -318,32 +315,26 @@ Please:
           },
           map,
           title: rec.restaurants.name,
+          icon: {
+            path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+            fillColor: '#EA4335',
+            fillOpacity: 1,
+            strokeColor: '#B31412',
+            strokeWeight: 2,
+            scale: 2,
+            anchor: new googleMaps.maps.Point(12, 24)
+          },
           animation: googleMaps.maps.Animation.DROP
         })
-
-        // Add click listener
         marker.addListener('click', () => {
           setSelectedSavedRec(rec)
           setSelectedRestaurant(rec.restaurants)
           setHeight(window.innerHeight * 0.5)
         })
-
         return marker
       })
-
     setMarkers(newMarkers)
-
-    // If we have filtered results, fit the map to show all markers
-    if (newMarkers.length > 0) {
-      const bounds = new googleMaps.maps.LatLngBounds()
-      newMarkers.forEach(marker => bounds.extend(marker.getPosition()))
-      map.fitBounds(bounds)
-      
-      // If zoomed in too far, zoom out a bit
-      if (map.getZoom() > 15) {
-        map.setZoom(15)
-      }
-    }
+    // Optionally fit bounds here if needed
   }, [filteredRestaurants, map, googleMaps])
 
   // Add markers when map and restaurants are ready
@@ -634,7 +625,9 @@ Please:
       if (error) throw error
       setSelectedSavedRec(null)
       setSelectedRestaurant(null)
-      setFilteredRestaurants(prev => prev.filter(rec => rec.id !== savedRecId))
+      // Update markers to reflect current filteredRestaurants
+      markers.forEach(marker => marker.setMap(null))
+      setMarkers([])
     } catch (error) {
       console.error('Delete error:', error)
       alert('Failed to delete restaurant: ' + (error.message || error))
