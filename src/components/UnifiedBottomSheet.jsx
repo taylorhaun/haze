@@ -200,7 +200,7 @@ export default function UnifiedBottomSheet({
 
       {/* Unified Header */}
       <div style={{
-        padding: '0 20px 16px 20px',
+        padding: '0 10px 16px 10px',
         borderBottom: '1px solid #f3f4f6',
         flexShrink: 0
       }}>
@@ -252,8 +252,9 @@ export default function UnifiedBottomSheet({
       <div style={{
         flex: 1,
         overflowY: 'auto',
+        overflowX: 'hidden', // Prevent horizontal scrolling
         padding: type === 'search' ? '8px 0' : '0',
-        paddingBottom: type === 'restaurant' ? '40px' : '8px',
+        paddingBottom: type === 'restaurant' ? '80px' : '8px', // More space for PWA bottom buttons
         overscrollBehavior: 'contain',
         WebkitOverflowScrolling: 'touch'
       }}>
@@ -261,7 +262,7 @@ export default function UnifiedBottomSheet({
           // Search Results Content
           filteredResults.length === 0 ? (
             <div style={{
-              padding: '40px 20px',
+              padding: '40px 10px',
               textAlign: 'center',
               color: '#6b7280'
             }}>
@@ -274,7 +275,7 @@ export default function UnifiedBottomSheet({
                 key={savedRec.id}
                 onClick={() => onRestaurantSelect(savedRec)}
                 style={{
-                  padding: '16px 20px',
+                  padding: '16px 10px',
                   borderBottom: '1px solid #f3f4f6',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
@@ -333,7 +334,7 @@ export default function UnifiedBottomSheet({
           // Restaurant Detail Content
           restaurant && savedRec && (
             <div style={{ 
-              padding: '20px',
+              padding: '10px',
               paddingTop: '0'
             }}>
               <style>

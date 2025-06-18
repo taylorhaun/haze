@@ -15,6 +15,8 @@ body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  /* Prevent horizontal scrolling */
+  overflow-x: hidden;
 }
 
 /* Prevent zoom on input focus (iOS) */
@@ -27,6 +29,7 @@ input, textarea, select {
 .app {
   min-height: 100vh;
   min-height: -webkit-fill-available; /* iOS safari fix */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* Auth Styles - Mobile First */
