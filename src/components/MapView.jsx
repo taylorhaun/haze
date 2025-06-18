@@ -68,13 +68,13 @@ export default function MapView({ restaurants, supabase, session, onRestaurantUp
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        rotateControl: false, // Disable rotate control
+        scaleControl: false, // Disable scale control
         // Google's location button - this might not appear until location permission is granted
-        myLocationButtonControl: true,
+        myLocationButtonControl: false, // Disable Google's location button too
         gestureHandling: 'greedy',
-        zoomControl: true,
-        zoomControlOptions: {
-          position: googleMaps.maps.ControlPosition.RIGHT_CENTER
-        },
+        zoomControl: false, // Disable zoom controls too
+        disableDefaultUI: true, // Disable ALL default UI controls
         styles: [
           {
             featureType: 'poi',
@@ -659,16 +659,17 @@ Please:
   ).length
 
   return (
-    <div className="map-container" style={{ position: 'relative' }}>
-      {/* iOS-Style Search Bar */}
+    <>
+      {/* iOS-Style Search Bar - Fixed to viewport, not map */}
       <div style={{
-        position: 'absolute',
+        position: 'fixed',
         top: '10px',
         left: '10px',
         right: '10px',
-        zIndex: 1000,
+        zIndex: 1500, // Higher than map but lower than bottom sheet
         display: 'flex',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        pointerEvents: 'none' // Allow clicks to pass through container
       }}>
         <div style={{
           background: 'white',
@@ -680,7 +681,8 @@ Please:
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          border: '1px solid #e5e7eb'
+          border: '1px solid #e5e7eb',
+          pointerEvents: 'auto' // Re-enable clicks for the search bar itself
         }}>
           <span style={{ color: '#9ca3af', fontSize: '16px' }}>🔍</span>
           <input
@@ -743,67 +745,55 @@ Please:
         </div>
       </div>
 
-      {/* Map */}
-      <div 
-        ref={mapRef} 
-        style={{ 
-          width: '100%',
-          height: '100vh', // Revert back to full height - parent handles bottom spacing
-          borderRadius: '0',
-          position: 'relative',
-          zIndex: 1
-        }} 
-      />
-
-      {/* Map Stats Overlay */}
-      {/* <div style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        background: 'rgba(255, 255, 255, 0.95)',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        fontSize: '14px',
-        color: '#374151',
-        backdropFilter: 'blur(4px)'
+      <div className="map-container" style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden', // Prevent any scrolling of the map container
+        padding: 0, // Override any CSS padding
+        margin: 0 // Override any CSS margin
       }}>
-        📍 {restaurantsWithLocation} of {restaurants.length} places mapped
-        {userLocation && (
-          <div style={{ fontSize: '12px', color: '#10b981', marginTop: '2px' }}>
-            🟢 Your location detected
-          </div>
-        )}
-      </div> */}
-
-      {/* Custom Locate Me Button as fallback */}
-      <button
-        onClick={getCurrentLocation}
-        style={{
-          position: 'absolute',
-          top: '60px', // Below Google's control if it exists
-          right: '10px',
-          background: userLocation ? '#10b981' : '#3b82f6',
-          color: 'white',
-          border: 'none',
-          borderRadius: '12px',
-          padding: '12px',
-          cursor: 'pointer',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minWidth: '48px',
-          minHeight: '48px',
-          transition: 'all 0.2s',
-          backdropFilter: 'blur(4px)',
-          fontSize: '18px',
-          zIndex: 999 // Lower than bottom sheet (2000) so it stays below
-        }}
-        title={userLocation ? 'Center on your location' : 'Find my location'}
-      >
-        📍
-      </button>
+        {/* Custom Locate Me Button - Positioned within map container */}
+        <button
+          onClick={getCurrentLocation}
+          style={{
+            position: 'absolute',
+            top: '70px', // Below search bar
+            right: '10px',
+            background: userLocation ? '#10b981' : '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '12px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '48px',
+            minHeight: '48px',
+            transition: 'all 0.2s',
+            backdropFilter: 'blur(4px)',
+            fontSize: '18px',
+            zIndex: 500 // Lower than bottom sheets
+          }}
+          title={userLocation ? 'Center on your location' : 'Find my location'}
+        >
+          📍
+        </button>
+        {/* Map */}
+        <div 
+          ref={mapRef} 
+          style={{ 
+            width: '100%',
+            height: '100%', // Fill the fixed container
+            borderRadius: '0',
+            position: 'relative',
+            zIndex: 1
+          }} 
+        />
 
       {selectedSavedRec && selectedRestaurant && (
         <UnifiedBottomSheet
@@ -824,18 +814,19 @@ Please:
         />
       )}
 
-      {/* Search Bottom Sheet */}
-      <UnifiedBottomSheet
-        key="search-sheet"
-        isVisible={showSearchSheet}
-        onClose={() => setShowSearchSheet(false)}
-        type="search"
-        restaurants={restaurants}
-        searchQuery={searchQuery}
-        onRestaurantSelect={handleSearchRestaurantSelect}
-        height={searchSheetHeight}
-        onHeightChange={setSearchSheetHeight}
-      />
-    </div>
+        {/* Search Bottom Sheet */}
+        <UnifiedBottomSheet
+          key="search-sheet"
+          isVisible={showSearchSheet}
+          onClose={() => setShowSearchSheet(false)}
+          type="search"
+          restaurants={restaurants}
+          searchQuery={searchQuery}
+          onRestaurantSelect={handleSearchRestaurantSelect}
+          height={searchSheetHeight}
+          onHeightChange={setSearchSheetHeight}
+        />
+      </div>
+    </>
   )
 }
