@@ -34,7 +34,7 @@ export default function DiscoverTab({ onAddRestaurant }) {
           color: '#8E8E93',
           lineHeight: 1.4
         }}>
-          Find new restaurants to add to your collection
+          Find new places to add to your collection
         </p>
       </div>
 
@@ -139,7 +139,7 @@ export default function DiscoverTab({ onAddRestaurant }) {
           textAlign: 'center',
           lineHeight: 1.4
         }}>
-          🚧 More discovery features coming soon! For now, the Instagram import (➕ button) is the best way to add restaurants.
+          🚧 More discovery features coming soon! For now, the Instagram import (➕ button) is the best way to add places.
         </p>
       </div>
 

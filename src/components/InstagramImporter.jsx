@@ -1034,7 +1034,7 @@ Return detailed JSON: {
           borderBottom: '1px solid #e5e5e5',
           padding: '0 16px 12px 16px',
         }}>
-          <h2 style={{ margin: 0, fontSize: 22 }}>Add Restaurant</h2>
+          <h2 style={{ margin: 0, fontSize: 22 }}>Add Place</h2>
           <button
             onClick={onClose}
             style={{
@@ -1426,7 +1426,7 @@ Return detailed JSON: {
           <form onSubmit={handleManualSubmit} style={{ padding: '0 16px' }}>
             <div style={{ marginBottom: '16px', position: 'relative' }}>
               <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                Restaurant Name
+                Place Name
               </label>
               <input
                 type="text"

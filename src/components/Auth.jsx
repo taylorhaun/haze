@@ -36,7 +36,7 @@ export default function Auth({ supabase }) {
     <div className="auth-container">
       <div className="auth-card">
         <h1>🌫️ haze</h1>
-        <p>Save restaurants from Instagram and discover them later</p>
+        <p>Save places from Instagram and discover them later</p>
         
         <form onSubmit={handleAuth}>
           <input

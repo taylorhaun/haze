@@ -614,7 +614,7 @@ Please:
             <h3>Maps Unavailable</h3>
             <p>{error}</p>
             <small style={{ display: 'block', marginTop: '8px', color: '#64748b' }}>
-              {restaurants.length} restaurants saved in list view
+              {restaurants.length} places saved in list view
             </small>
           </div>
         </div>
@@ -629,7 +629,7 @@ Please:
         <div className="loading">
           <div style={{ textAlign: 'center' }}>
             <h3>🗺️ Loading Map...</h3>
-            <p>Preparing to show {restaurants.length} restaurants</p>
+            <p>Preparing to show {restaurants.length} places</p>
           </div>
         </div>
       </div>
@@ -643,9 +643,9 @@ Please:
         <div className="loading">
           <div style={{ textAlign: 'center' }}>
             <h3>🗺️ Map Ready</h3>
-            <p>Add some restaurants to see them plotted here!</p>
+            <p>Add some places to see them plotted here!</p>
             <small style={{ color: '#64748b', marginTop: '8px', display: 'block' }}>
-              Restaurants with addresses will appear as markers
+              Places with addresses will appear as markers
             </small>
           </div>
         </div>
@@ -706,7 +706,7 @@ Please:
               // Don't immediately close on blur - let user interact with results
               // The sheet will close when they select a restaurant or tap the X
             }}
-            placeholder="Search your saved restaurants..."
+            placeholder="Search your saved places..."
             style={{
               border: 'none',
               outline: 'none',
@@ -768,7 +768,7 @@ Please:
         color: '#374151',
         backdropFilter: 'blur(4px)'
       }}>
-        📍 {restaurantsWithLocation} of {restaurants.length} restaurants mapped
+        📍 {restaurantsWithLocation} of {restaurants.length} places mapped
         {userLocation && (
           <div style={{ fontSize: '12px', color: '#10b981', marginTop: '2px' }}>
             🟢 Your location detected

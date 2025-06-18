@@ -216,8 +216,8 @@ export default function UnifiedBottomSheet({
             color: '#1f2937'
           }}>
             {type === 'search' 
-              ? (searchQuery.trim() ? `"${searchQuery}" Results` : 'Your Restaurants')
-              : 'Restaurant Details'
+              ? (searchQuery.trim() ? `"${searchQuery}" Results` : 'Your Places')
+              : 'Place Details'
             }
           </h3>
           {/* Unified Close Button - Always gray/black */}
@@ -243,7 +243,7 @@ export default function UnifiedBottomSheet({
             fontSize: '14px',
             color: '#6b7280'
           }}>
-            {filteredResults.length} restaurant{filteredResults.length !== 1 ? 's' : ''} found
+            {filteredResults.length} place{filteredResults.length !== 1 ? 's' : ''} found
           </p>
         )}
       </div>
@@ -266,7 +266,7 @@ export default function UnifiedBottomSheet({
               color: '#6b7280'
             }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-              <p>No restaurants found matching "{searchQuery}"</p>
+              <p>No places found matching "{searchQuery}"</p>
             </div>
           ) : (
             filteredResults.map((savedRec) => (

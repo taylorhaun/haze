@@ -34,7 +34,7 @@ export default function SearchTab({
           color: '#8E8E93',
           lineHeight: 1.4
         }}>
-          Search and filter your saved restaurants
+          Search and filter your saved places
         </p>
       </div>
 
@@ -77,7 +77,7 @@ export default function SearchTab({
               fontSize: '16px',
               lineHeight: 1.4
             }}>
-              Add some restaurants first, then come back here to search and filter them.
+              Add some places first, then come back here to search and filter them.
             </p>
           </div>
         ) : (

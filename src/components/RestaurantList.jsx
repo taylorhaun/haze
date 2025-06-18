@@ -11,7 +11,7 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
     return (
       <div className="restaurant-list">
         <div className="loading">
-          No restaurants saved yet. Add some restaurants to get started!
+          No places saved yet. Add some places to get started!
         </div>
       </div>
     )
@@ -52,7 +52,7 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
               onClick={() => handleRestaurantClick(savedRec)}
             >
               <div className="restaurant-name">
-                {restaurant?.name || 'Unknown Restaurant'}
+                {restaurant?.name || 'Unknown Place'}
               </div>
               
               {savedRec.user_notes && (

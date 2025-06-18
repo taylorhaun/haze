@@ -141,7 +141,7 @@ export default function RestaurantApp({ session, supabase }) {
                 fontWeight: '700',
                 color: '#1C1C1E'
               }}>
-                📋 My Restaurants
+                📋 My Places
               </h2>
               {restaurants.length > 0 && (
                 <p style={{
