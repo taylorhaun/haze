@@ -29,6 +29,7 @@ export default function InstagramImporter({ supabase, session, onClose, onRestau
   const [manualSuggestions, setManualSuggestions] = useState([])
   const [manualAutocompleteLoading, setManualAutocompleteLoading] = useState(false)
   const [manualPlaceId, setManualPlaceId] = useState(null)
+  const [suppressAutocomplete, setSuppressAutocomplete] = useState(false)
 
   // Add state for Google Places details in manual entry
   const [manualPlaceDetails, setManualPlaceDetails] = useState(null)
@@ -880,7 +881,7 @@ Return detailed JSON: {
 
   // Fetch suggestions as user types
   useEffect(() => {
-    if (activeTab !== 'manual' || !googleMaps) return
+    if (activeTab !== 'manual' || !googleMaps || suppressAutocomplete) return
     if (!restaurantName.trim()) {
       setManualSuggestions([])
       return
@@ -899,7 +900,7 @@ Return detailed JSON: {
         setManualSuggestions([])
       }
     })
-  }, [restaurantName, activeTab, googleMaps])
+  }, [restaurantName, activeTab, googleMaps, suppressAutocomplete])
 
   // Generate smart tags based on Google Places data
   const generateManualTags = async (placeDetails) => {
@@ -966,6 +967,7 @@ Return detailed JSON: {
     setRestaurantName(suggestion.description)
     setManualSuggestions([])
     setManualPlaceId(suggestion.place_id)
+    setSuppressAutocomplete(true) // Prevent autocomplete from re-triggering
     if (
       googleMaps &&
       googleMaps.maps &&
@@ -1434,6 +1436,7 @@ Return detailed JSON: {
                 onChange={e => {
                   setRestaurantName(e.target.value)
                   setManualPlaceId(null)
+                  setSuppressAutocomplete(false) // Re-enable autocomplete when user types
                 }}
                 placeholder="e.g. Joe's Pizza"
                 required

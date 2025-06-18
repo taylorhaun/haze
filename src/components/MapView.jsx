@@ -4,7 +4,7 @@ import RestaurantDetail from './RestaurantDetail'
 import './MapView.css'  // We'll create this file next
 import UnifiedBottomSheet from './UnifiedBottomSheet'
 
-export default function MapView({ restaurants, supabase, session, onRestaurantUpdate }) {
+export default function MapView({ restaurants, supabase, session, onRestaurantUpdate, onRestaurantDelete }) {
   const mapRef = useRef(null)
   const [map, setMap] = useState(null)
   const [googleMaps, setGoogleMaps] = useState(null)
@@ -301,10 +301,17 @@ Please:
 
     // Filter restaurants based on search query for map display
     const restaurantsToShow = searchQuery.trim() 
-      ? restaurants.filter(savedRec => 
-          savedRec.restaurants?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (savedRec.tags && savedRec.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
-        )
+      ? restaurants.filter(savedRec => {
+          const query = searchQuery.toLowerCase()
+          return (
+            // Search in restaurant name
+            savedRec.restaurants?.name?.toLowerCase().includes(query) ||
+            // Search in personal notes
+            savedRec.user_notes?.toLowerCase().includes(query) ||
+            // Search in tags
+            (savedRec.tags && savedRec.tags.some(tag => tag.toLowerCase().includes(query)))
+          )
+        })
       : restaurants
 
     restaurantsToShow.forEach((savedRec) => {
@@ -570,17 +577,23 @@ Please:
   // Add this handler in MapView
   const handleDelete = async (savedRecId) => {
     try {
-      const { error } = await supabase
-        .from('saved_recs')
-        .delete()
-        .eq('id', savedRecId)
-        .eq('user_id', session.user.id)
-      if (error) throw error
+      // Close the bottom sheet first
       setSelectedSavedRec(null)
       setSelectedRestaurant(null)
-      // Update markers to reflect current displayedRestaurants
-      markers.forEach(marker => marker.setMap(null))
-      setMarkers([])
+      
+      // Use the parent's delete handler which handles both DB deletion and state updates
+      if (onRestaurantDelete) {
+        await onRestaurantDelete(savedRecId)
+      } else {
+        // Fallback: direct deletion if no parent handler
+        const { error } = await supabase
+          .from('saved_recs')
+          .delete()
+          .eq('id', savedRecId)
+          .eq('user_id', session.user.id)
+        if (error) throw error
+      }
+      
     } catch (error) {
       console.error('Delete error:', error)
       alert('Failed to delete restaurant: ' + (error.message || error))

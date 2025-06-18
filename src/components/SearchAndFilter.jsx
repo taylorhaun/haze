@@ -15,12 +15,16 @@ export default function SearchAndFilter({
   useEffect(() => {
     let filtered = [...restaurants]
 
-    // Search by restaurant name
+    // Search by restaurant name, personal notes, and tags
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(savedRec => 
+        // Search in restaurant name
         savedRec.restaurants?.name?.toLowerCase().includes(query) ||
-        savedRec.user_notes?.toLowerCase().includes(query)
+        // Search in personal notes
+        savedRec.user_notes?.toLowerCase().includes(query) ||
+        // Search in tags
+        (savedRec.tags && savedRec.tags.some(tag => tag.toLowerCase().includes(query)))
       )
     }
 

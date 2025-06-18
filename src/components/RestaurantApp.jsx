@@ -215,7 +215,7 @@ export default function RestaurantApp({ session, supabase }) {
             bottom: 0,
             overflow: 'hidden'
           }}>
-            <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} onRestaurantUpdate={handleRestaurantUpdateInPlace} />
+            <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} onRestaurantUpdate={handleRestaurantUpdateInPlace} onRestaurantDelete={handleRestaurantDelete} />
           </div>
         )
       

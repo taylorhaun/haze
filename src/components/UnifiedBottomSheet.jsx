@@ -38,7 +38,11 @@ export default function UnifiedBottomSheet({
       
       const query = searchQuery.toLowerCase()
       const filtered = restaurants.filter(savedRec => 
+        // Search in restaurant name
         savedRec.restaurants?.name?.toLowerCase().includes(query) ||
+        // Search in personal notes
+        savedRec.user_notes?.toLowerCase().includes(query) ||
+        // Search in tags
         (savedRec.tags && savedRec.tags.some(tag => tag.toLowerCase().includes(query)))
       )
       setFilteredResults(filtered)
@@ -254,7 +258,7 @@ export default function UnifiedBottomSheet({
         overflowY: 'auto',
         overflowX: 'hidden', // Prevent horizontal scrolling
         padding: type === 'search' ? '8px 0' : '0',
-        paddingBottom: type === 'restaurant' ? '80px' : '8px', // More space for PWA bottom buttons
+        paddingBottom: type === 'restaurant' ? '80px' : '120px', // More space for search results and bottom navigation
         overscrollBehavior: 'contain',
         WebkitOverflowScrolling: 'touch'
       }}>
