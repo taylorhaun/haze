@@ -207,9 +207,7 @@ export default function RestaurantApp({ session, supabase }) {
       
       case 'map':
         return (
-          <div style={{ paddingBottom: '100px' }}>
-            <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} onRestaurantUpdate={handleRestaurantUpdateInPlace} />
-          </div>
+          <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} onRestaurantUpdate={handleRestaurantUpdateInPlace} />
         )
       
       case 'search':

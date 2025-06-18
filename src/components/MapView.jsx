@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
 import RestaurantDetail from './RestaurantDetail'
 import './MapView.css'  // We'll create this file next
 import BottomSheet from './BottomSheet'
+import MapSearchBottomSheet from './MapSearchBottomSheet'
 
 export default function MapView({ restaurants, supabase, session, onRestaurantUpdate }) {
   const mapRef = useRef(null)
@@ -22,10 +23,10 @@ export default function MapView({ restaurants, supabase, session, onRestaurantUp
   const [dragStartHeight, setDragStartHeight] = useState(0)
   const [height, setHeight] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchSheet, setShowSearchSheet] = useState(false)
+  const [searchSheetHeight, setSearchSheetHeight] = useState('50vh')
 
-  // Use the parent's filteredRestaurants prop directly
-  const filteredRestaurants = restaurants
+
 
   // Initialize Google Maps
   useEffect(() => {
@@ -280,62 +281,8 @@ Please:
     
   }, [map, googleMaps, userLocation])
 
-  // Filter restaurants based on search query
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setIsSearching(false)
-      return
-    }
-
-    setIsSearching(true)
-    const query = searchQuery.toLowerCase().trim()
-    const filtered = restaurants.filter(rec => {
-      const name = rec.restaurants?.name?.toLowerCase() || ''
-      const tags = rec.tags || []
-      const tagMatch = tags.some(tag => tag.toLowerCase().includes(query))
-      const nameMatch = name.includes(query)
-      return nameMatch || tagMatch
-    })
-
-    setFilteredRestaurants(filtered)
-  }, [searchQuery, restaurants])
-
   // Update markers when filtered restaurants change
-  useEffect(() => {
-    if (!map || !googleMaps) return
-    markers.forEach(marker => marker.setMap(null))
-    setMarkers([])
-    const newMarkers = filteredRestaurants
-      .filter(rec => rec.restaurants?.latitude && rec.restaurants?.longitude)
-      .map(rec => {
-        const marker = new googleMaps.maps.Marker({
-          position: {
-            lat: rec.restaurants.latitude,
-            lng: rec.restaurants.longitude
-          },
-          map,
-          title: rec.restaurants.name,
-          icon: {
-            path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-            fillColor: '#EA4335',
-            fillOpacity: 1,
-            strokeColor: '#B31412',
-            strokeWeight: 2,
-            scale: 2,
-            anchor: new googleMaps.maps.Point(12, 24)
-          },
-          animation: googleMaps.maps.Animation.DROP
-        })
-        marker.addListener('click', () => {
-          setSelectedSavedRec(rec)
-          setSelectedRestaurant(rec.restaurants)
-          setHeight(window.innerHeight * 0.5)
-        })
-        return marker
-      })
-    setMarkers(newMarkers)
-    // Optionally fit bounds here if needed
-  }, [filteredRestaurants, map, googleMaps])
+
 
   // Add markers when map and restaurants are ready
   useEffect(() => {
@@ -353,7 +300,15 @@ Please:
       bounds.extend(userLocation)
     }
 
-    restaurants.forEach((savedRec) => {
+    // Filter restaurants based on search query for map display
+    const restaurantsToShow = searchQuery.trim() 
+      ? restaurants.filter(savedRec => 
+          savedRec.restaurants?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (savedRec.tags && savedRec.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
+        )
+      : restaurants
+
+    restaurantsToShow.forEach((savedRec) => {
       const restaurant = savedRec.restaurants
       
       // Skip if no coordinates
@@ -423,7 +378,7 @@ Please:
       }
     }
 
-  }, [map, googleMaps, restaurants, userLocation])
+  }, [map, googleMaps, restaurants, userLocation, searchQuery])
 
   // Calculate distance between two points (Haversine formula)
   const calculateDistance = (lat1, lng1, lat2, lng2) => {
@@ -616,7 +571,6 @@ Please:
   // Add this handler in MapView
   const handleDelete = async (savedRecId) => {
     try {
-      console.log('Attempting to delete:', savedRecId, 'for user:', session?.user?.id)
       const { error } = await supabase
         .from('saved_recs')
         .delete()
@@ -625,13 +579,31 @@ Please:
       if (error) throw error
       setSelectedSavedRec(null)
       setSelectedRestaurant(null)
-      // Update markers to reflect current filteredRestaurants
+      // Update markers to reflect current displayedRestaurants
       markers.forEach(marker => marker.setMap(null))
       setMarkers([])
     } catch (error) {
       console.error('Delete error:', error)
       alert('Failed to delete restaurant: ' + (error.message || error))
     }
+  }
+
+  const handleSearchRestaurantSelect = (savedRec) => {
+    // Center map on selected restaurant
+    if (map && savedRec.restaurants?.latitude && savedRec.restaurants?.longitude) {
+      const position = {
+        lat: parseFloat(savedRec.restaurants.latitude),
+        lng: parseFloat(savedRec.restaurants.longitude)
+      }
+      map.panTo(position)
+      map.setZoom(16)
+    }
+    
+    // Close search sheet and show restaurant details
+    setShowSearchSheet(false)
+    setSelectedSavedRec(savedRec)
+    setSelectedRestaurant(savedRec.restaurants)
+    setHeight(window.innerHeight * 0.5)
   }
 
   // Handle errors
@@ -689,7 +661,7 @@ Please:
 
   return (
     <div className="map-container" style={{ position: 'relative' }}>
-      {/* Search Bar */}
+      {/* iOS-Style Search Bar */}
       <div style={{
         position: 'absolute',
         top: '10px',
@@ -697,77 +669,79 @@ Please:
         right: '10px',
         zIndex: 1000,
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px'
+        justifyContent: 'center'
       }}>
         <div style={{
           background: 'white',
-          borderRadius: '24px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-          padding: '8px 16px',
+          borderRadius: '28px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          padding: '12px 20px',
           width: '100%',
-          maxWidth: '500px',
+          maxWidth: '400px',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          transition: 'all 0.2s ease',
-          border: isSearching ? '2px solid #3b82f6' : '2px solid transparent'
+          gap: '12px',
+          border: '1px solid #e5e7eb'
         }}>
-          <span style={{ color: '#64748b' }}>🔍</span>
+          <span style={{ color: '#9ca3af', fontSize: '16px' }}>🔍</span>
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name or tag..."
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              // Show search sheet only when there's actual search text
+              setShowSearchSheet(e.target.value.trim().length > 0)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.target.blur() // Hide keyboard on mobile
+              }
+            }}
+            onFocus={() => {
+              // Only show search sheet if there's already text
+              if (searchQuery.trim().length > 0) {
+                setShowSearchSheet(true)
+              }
+            }}
+            onBlur={() => {
+              // Don't immediately close on blur - let user interact with results
+              // The sheet will close when they select a restaurant or tap the X
+            }}
+            placeholder="Search your saved restaurants..."
             style={{
               border: 'none',
               outline: 'none',
               width: '100%',
               fontSize: '16px',
-              color: '#1e293b',
-              background: 'transparent'
+              color: '#374151',
+              background: 'transparent',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }}
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => {
+                setSearchQuery('')
+                setShowSearchSheet(false)
+              }}
               style={{
-                background: 'none',
+                background: '#f3f4f6',
                 border: 'none',
-                color: '#64748b',
-                cursor: 'pointer',
-                padding: '4px',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#6b7280'
               }}
             >
               ✕
             </button>
           )}
         </div>
-
-        {/* Search Results Count */}
-        {isSearching && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '8px 16px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-            fontSize: '14px',
-            color: '#1e293b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <span>📍</span>
-            <span>
-              {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'result' : 'results'} found
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Map */}
@@ -775,7 +749,7 @@ Please:
         ref={mapRef} 
         style={{ 
           width: '100%',
-          height: '100vh',
+          height: '100vh', // Revert back to full height - parent handles bottom spacing
           borderRadius: '0',
           position: 'relative',
           zIndex: 1
@@ -853,6 +827,18 @@ Please:
           />
         </BottomSheet>
       )}
+
+      {/* Search Bottom Sheet */}
+      <MapSearchBottomSheet
+        key="search-sheet"
+        isVisible={showSearchSheet}
+        onClose={() => setShowSearchSheet(false)}
+        restaurants={restaurants}
+        searchQuery={searchQuery}
+        onRestaurantSelect={handleSearchRestaurantSelect}
+        height={searchSheetHeight}
+        onHeightChange={setSearchSheetHeight}
+      />
     </div>
   )
 }
