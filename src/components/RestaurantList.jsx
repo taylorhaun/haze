@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
+import UnifiedBottomSheet from './UnifiedBottomSheet'
 import RestaurantDetail from './RestaurantDetail'
-import BottomSheet from './BottomSheet'
 
 export default function RestaurantList({ restaurants, onRestaurantUpdate, onRestaurantDelete, supabase }) {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null)
   const [selectedSavedRec, setSelectedSavedRec] = useState(null)
+  const [bottomSheetHeight, setBottomSheetHeight] = useState('50vh')
 
   if (restaurants.length === 0) {
     return (
@@ -81,24 +82,18 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
 
       {/* Restaurant Detail Bottom Sheet */}
       {selectedRestaurant && selectedSavedRec && (
-        <BottomSheet
-          open={!!selectedSavedRec}
+        <UnifiedBottomSheet
+          isVisible={!!selectedSavedRec}
           onClose={handleCloseDetail}
-          defaultHeight="full"
-        >
-          <RestaurantDetail
-            restaurant={selectedRestaurant}
-            savedRec={selectedSavedRec}
-            onClose={handleCloseDetail}
-            onEdit={(updatedSavedRec) => {
-              setSelectedSavedRec(updatedSavedRec);
-              if (onRestaurantUpdate) onRestaurantUpdate(updatedSavedRec);
-            }}
-            onDelete={handleDelete}
-            supabase={supabase}
-            isModal={false}
-          />
-        </BottomSheet>
+          type="restaurant"
+          restaurant={selectedRestaurant}
+          savedRec={selectedSavedRec}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          supabase={supabase}
+          height={bottomSheetHeight}
+          onHeightChange={setBottomSheetHeight}
+        />
       )}
 
       <style jsx>{`

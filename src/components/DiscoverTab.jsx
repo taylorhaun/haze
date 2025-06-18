@@ -1,20 +1,12 @@
 import React, { useState } from 'react'
 
 export default function DiscoverTab({ onAddRestaurant }) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState([])
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    // TODO: Implement Google Places search for nearby restaurants
-    alert('Restaurant discovery search coming soon! For now, use the ➕ button to add restaurants from Instagram.')
-  }
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [showTopSavedSoon, setShowTopSavedSoon] = useState(false)
 
   const quickActions = [
-    { icon: '📷', title: 'From Instagram', subtitle: 'Import from Instagram profile or post', action: onAddRestaurant },
-    { icon: '📍', title: 'Nearby Places', subtitle: 'Find restaurants near your location', action: () => alert('Coming soon!') },
-    { icon: '🍕', title: 'By Cuisine', subtitle: 'Browse by food type', action: () => alert('Coming soon!') },
-    { icon: '⭐', title: 'Top Rated', subtitle: 'Discover highly rated spots', action: () => alert('Coming soon!') }
+    { icon: '⭐', title: 'Top Saved', subtitle: 'Discover the top saved places on haze.', action: () => setShowTopSavedSoon(true) },
+    { icon: '🎯', title: 'Taste Match', subtitle: 'See what places you have in common with your friends', action: () => setShowComingSoon(true) }
   ]
 
   return (
@@ -44,53 +36,6 @@ export default function DiscoverTab({ onAddRestaurant }) {
         }}>
           Find new restaurants to add to your collection
         </p>
-      </div>
-
-      {/* Search Bar */}
-      <div style={{
-        padding: '0 20px 24px 20px',
-        maxWidth: '500px',
-        margin: '0 auto'
-      }}>
-        <form onSubmit={handleSearch}>
-          <div style={{
-            position: 'relative'
-          }}>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for restaurants, cuisines, or locations..."
-              style={{
-                width: '100%',
-                padding: '16px 50px 16px 16px',
-                border: '1px solid #D1D1D6',
-                borderRadius: '12px',
-                fontSize: '16px',
-                background: 'rgba(255, 255, 255, 0.8)',
-                color: '#1C1C1E'
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                position: 'absolute',
-                right: '8px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: '#007AFF',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              🔍
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* Quick Actions */}
@@ -197,6 +142,136 @@ export default function DiscoverTab({ onAddRestaurant }) {
           🚧 More discovery features coming soon! For now, the Instagram import (➕ button) is the best way to add restaurants.
         </p>
       </div>
+
+      {/* Coming Soon Modal */}
+      {showComingSoon && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }} onClick={() => setShowComingSoon(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '300px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '16px'
+            }}>
+              🚧
+            </div>
+            <h3 style={{
+              margin: '0 0 8px 0',
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1C1C1E'
+            }}>
+              Coming Soon!
+            </h3>
+            <p style={{
+              margin: '0 0 20px 0',
+              fontSize: '16px',
+              color: '#8E8E93',
+              lineHeight: 1.4
+            }}>
+              Taste Match is currently in development. Stay tuned!
+            </p>
+            <button
+              onClick={() => setShowComingSoon(false)}
+              style={{
+                background: '#007AFF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Top Saved Modal */}
+      {showTopSavedSoon && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }} onClick={() => setShowTopSavedSoon(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '300px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '16px'
+            }}>
+              🚧
+            </div>
+            <h3 style={{
+              margin: '0 0 8px 0',
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1C1C1E'
+            }}>
+              Coming Soon!
+            </h3>
+            <p style={{
+              margin: '0 0 20px 0',
+              fontSize: '16px',
+              color: '#8E8E93',
+              lineHeight: 1.4
+            }}>
+              Top Saved is currently in development. Stay tuned!
+            </p>
+            <button
+              onClick={() => setShowTopSavedSoon(false)}
+              style={{
+                background: '#007AFF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

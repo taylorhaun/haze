@@ -76,16 +76,18 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
   // Prevent body scrolling when modal is open
   useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    document.body.style.position = 'fixed'
-    document.body.style.width = '100%'
-    
-    return () => {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
+    if (isModal) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      
+      return () => {
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.width = ''
+      }
     }
-  }, [])
+  }, [isModal])
 
   if (!restaurant || !savedRec) return null
 
@@ -351,24 +353,6 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           </div>
         </div>
       )}
-
-      {/* Source Info */}
-      <div className="detail-section">
-        <div className="section-title">ℹ️ Source</div>
-        <div className="source-info">
-          <span className="source-type">
-            {savedRec.source_type === 'instagram' ? '📷 Instagram Import' : '✏️ Manual Entry'}
-          </span>
-          <span className="source-date">
-            Added {new Date(savedRec.created_at).toLocaleDateString()}
-          </span>
-        </div>
-        {sourceData.sentiment && (
-          <div className="sentiment-info">
-            Mood: {sourceData.sentiment}
-          </div>
-        )}
-      </div>
 
       {/* Action Buttons */}
       <div className="detail-actions">

@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
 import RestaurantDetail from './RestaurantDetail'
 import './MapView.css'  // We'll create this file next
-import BottomSheet from './BottomSheet'
-import MapSearchBottomSheet from './MapSearchBottomSheet'
+import UnifiedBottomSheet from './UnifiedBottomSheet'
 
 export default function MapView({ restaurants, supabase, session, onRestaurantUpdate }) {
   const mapRef = useRef(null)
@@ -799,7 +798,7 @@ Please:
           transition: 'all 0.2s',
           backdropFilter: 'blur(4px)',
           fontSize: '18px',
-          zIndex: 3000
+          zIndex: 999 // Lower than bottom sheet (2000) so it stays below
         }}
         title={userLocation ? 'Center on your location' : 'Find my location'}
       >
@@ -807,32 +806,30 @@ Please:
       </button>
 
       {selectedSavedRec && selectedRestaurant && (
-        <BottomSheet
-          open={!!selectedSavedRec}
+        <UnifiedBottomSheet
+          isVisible={!!selectedSavedRec}
           onClose={() => { setSelectedSavedRec(null); setSelectedRestaurant(null); }}
-          defaultHeight="half"
-        >
-          <RestaurantDetail
-            restaurant={selectedRestaurant}
-            savedRec={selectedSavedRec}
-            onClose={() => { setSelectedSavedRec(null); setSelectedRestaurant(null); }}
-            onDelete={handleDelete}
-            supabase={supabase}
-            isModal={false}
-            onEdit={(updatedRec) => {
-              setSelectedSavedRec(updatedRec);
-              setSelectedRestaurant(updatedRec.restaurants);
-              onRestaurantUpdate(updatedRec);
-            }}
-          />
-        </BottomSheet>
+          type="restaurant"
+          restaurant={selectedRestaurant}
+          savedRec={selectedSavedRec}
+          onDelete={handleDelete}
+          onEdit={(updatedRec) => {
+            setSelectedSavedRec(updatedRec);
+            setSelectedRestaurant(updatedRec.restaurants);
+            onRestaurantUpdate(updatedRec);
+          }}
+          supabase={supabase}
+          height={searchSheetHeight}
+          onHeightChange={setSearchSheetHeight}
+        />
       )}
 
       {/* Search Bottom Sheet */}
-      <MapSearchBottomSheet
+      <UnifiedBottomSheet
         key="search-sheet"
         isVisible={showSearchSheet}
         onClose={() => setShowSearchSheet(false)}
+        type="search"
         restaurants={restaurants}
         searchQuery={searchQuery}
         onRestaurantSelect={handleSearchRestaurantSelect}
