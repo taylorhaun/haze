@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import RestaurantDetail from './RestaurantDetail'
 
 export default function TopSavedView({ supabase, session, onClose, onAddToMyList }) {
   const [topSaved, setTopSaved] = useState([])
@@ -8,6 +9,9 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
   const [myRestaurantIds, setMyRestaurantIds] = useState(new Set())
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [addedRestaurantName, setAddedRestaurantName] = useState('')
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null)
+  const [selectedSavedRec, setSelectedSavedRec] = useState(null)
+  const [showRestaurantDetail, setShowRestaurantDetail] = useState(false)
 
   // Categories for filtering
   const categories = [
@@ -23,10 +27,20 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
   useEffect(() => {
     const loadData = async () => {
       await fetchMyRestaurants()
-      fetchTopSaved()
+      await fetchTopSaved()
     }
     loadData()
   }, [])
+
+  // Update isAlreadySaved status when myRestaurantIds changes
+  useEffect(() => {
+    if (topSaved.length > 0) {
+      setTopSaved(prev => prev.map(restaurant => ({
+        ...restaurant,
+        isAlreadySaved: myRestaurantIds.has(restaurant.id)
+      })))
+    }
+  }, [myRestaurantIds])
 
   const fetchMyRestaurants = async () => {
     try {
@@ -83,6 +97,161 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
     }
   }
 
+  const handleRestaurantClick = async (restaurant) => {
+    try {
+      // Fetch the full restaurant data with all fields including source_data
+      const { data: fullRestaurant, error: restaurantError } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('id', restaurant.id)
+        .single()
+
+      if (restaurantError) throw restaurantError
+
+      // Check for existing photos/reviews in saved_recs data
+      let enhancedSourceData = {}
+      const { data: sampleSavedRecs, error: sampleError } = await supabase
+        .from('saved_recs')
+        .select('source_data')
+        .eq('restaurant_id', restaurant.id)
+        .not('source_data', 'is', null)
+
+      if (!sampleError && sampleSavedRecs && sampleSavedRecs.length > 0) {
+        console.log('🔍 Found', sampleSavedRecs.length, 'saved_recs for this restaurant')
+        
+        // Find the first saved_rec with actual photos/reviews
+        const recWithData = sampleSavedRecs.find(rec => 
+          rec.source_data && 
+          (rec.source_data.photos?.length > 0 || rec.source_data.reviews?.length > 0)
+        )
+        
+        if (recWithData) {
+          enhancedSourceData = recWithData.source_data
+          console.log('🔍 Using existing source_data with photos/reviews:', {
+            photos: enhancedSourceData.photos?.length || 0,
+            reviews: enhancedSourceData.reviews?.length || 0
+          })
+        } else {
+          console.log('🔍 Found saved_recs but no photos/reviews in source_data')
+        }
+      } else {
+        console.log('🔍 No source_data found in saved_recs for this restaurant')
+      }
+
+      // Merge the full restaurant data with the community data and enhanced source data
+      const enrichedRestaurant = {
+        ...fullRestaurant,
+        source_data: enhancedSourceData,
+        save_count: restaurant.save_count,
+        popular_tags: restaurant.popular_tags,
+        trend: restaurant.trend,
+        isAlreadySaved: restaurant.isAlreadySaved
+      }
+
+      console.log('🔍 Restaurant loaded with', enrichedRestaurant.source_data?.photos?.length || 0, 'photos and', enrichedRestaurant.source_data?.reviews?.length || 0, 'reviews')
+
+      setSelectedRestaurant(enrichedRestaurant)
+      
+      // If restaurant is already saved, fetch the actual savedRec
+      if (restaurant.isAlreadySaved) {
+        try {
+          const { data, error } = await supabase
+            .from('saved_recs')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .eq('restaurant_id', restaurant.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+          
+          if (error) throw error
+          
+          if (data && data.length > 0) {
+            // Merge the existing saved record with the enhanced source_data
+            const enhancedSavedRec = {
+              ...data[0],
+              source_data: enhancedSourceData
+            }
+            setSelectedSavedRec(enhancedSavedRec)
+          } else {
+            setSelectedSavedRec(createMockSavedRec(enrichedRestaurant))
+          }
+        } catch (err) {
+          console.error('Error fetching saved rec:', err)
+          // Create a minimal mock if fetch fails
+          setSelectedSavedRec(createMockSavedRec(enrichedRestaurant))
+        }
+      } else {
+        // Create mock savedRec for unsaved restaurant
+        setSelectedSavedRec(createMockSavedRec(enrichedRestaurant))
+      }
+      
+      setShowRestaurantDetail(true)
+    } catch (err) {
+      console.error('Error fetching full restaurant data:', err)
+      // Fallback to using the limited data we have
+      setSelectedRestaurant(restaurant)
+      setSelectedSavedRec(createMockSavedRec(restaurant))
+      setShowRestaurantDetail(true)
+    }
+  }
+
+  const createMockSavedRec = (restaurant) => ({
+    id: null,
+    user_id: session.user.id,
+    restaurant_id: restaurant.id,
+    user_notes: '',
+    tags: [],
+    source_type: 'top_saved',
+    source_data: restaurant.source_data || {},
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  })
+
+  const handleCloseRestaurantDetail = () => {
+    setShowRestaurantDetail(false)
+    setSelectedRestaurant(null)
+    setSelectedSavedRec(null)
+  }
+
+  const handleEditSavedRec = (updatedSavedRec) => {
+    setSelectedSavedRec(updatedSavedRec)
+    // Update the topSaved list if the restaurant was modified
+    setTopSaved(prev => prev.map(r => 
+      r.id === selectedRestaurant.id 
+        ? { ...r, isAlreadySaved: true }
+        : r
+    ))
+  }
+
+  const handleDeleteSavedRec = async (savedRecId) => {
+    try {
+      const { error } = await supabase
+        .from('saved_recs')
+        .delete()
+        .eq('id', savedRecId)
+
+      if (error) throw error
+
+      // Update local state
+      setMyRestaurantIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(selectedRestaurant.id)
+        return newSet
+      })
+      
+      // Update the restaurant's isAlreadySaved status
+      setTopSaved(prev => prev.map(r => 
+        r.id === selectedRestaurant.id 
+          ? { ...r, isAlreadySaved: false }
+          : r
+      ))
+      
+    } catch (err) {
+      console.error('Error deleting saved rec:', err)
+      throw err
+    }
+  }
+
   const handleAddToMyList = async (restaurant) => {
     try {
       // Check if restaurant already exists in restaurants table
@@ -113,15 +282,23 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
         restaurantId = newRestaurant.id
       }
 
-      // Add to user's saved list
+      // Add to user's saved list with enhanced source_data if available
+      const savedRecData = {
+        user_id: session.user.id,
+        restaurant_id: restaurantId,
+        source_type: 'top_saved',
+        tags: ['trending', 'community-favorite']
+      }
+
+      // Include photos and reviews if we have them
+      if (restaurant.source_data && Object.keys(restaurant.source_data).length > 0) {
+        savedRecData.source_data = restaurant.source_data
+        console.log('💾 Saving restaurant with photos/reviews:', restaurant.source_data.photos?.length || 0, 'photos')
+      }
+
       const { error } = await supabase
         .from('saved_recs')
-        .insert([{
-          user_id: session.user.id,
-          restaurant_id: restaurantId,
-          source_type: 'top_saved',
-          tags: ['trending', 'community-favorite']
-        }])
+        .insert([savedRecData])
 
       if (error) throw error
 
@@ -326,13 +503,15 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
                          {filteredRestaurants.map((restaurant, index) => (
                <div
                  key={restaurant.id}
+                 onClick={() => handleRestaurantClick(restaurant)}
                  style={{
                    background: 'white',
                    border: '1px solid #f1f5f9',
                    borderRadius: '12px',
                    padding: '12px',
                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                   position: 'relative'
+                   position: 'relative',
+                   cursor: 'pointer'
                  }}
                >
                  {/* Header Row - Name, Ranking, Add Button */}
@@ -379,7 +558,10 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
 
                      {/* Compact Add Button */}
                      <button
-                       onClick={() => handleAddToMyList(restaurant)}
+                       onClick={(e) => {
+                         e.stopPropagation() // Prevent triggering restaurant click
+                         handleAddToMyList(restaurant)
+                       }}
                        disabled={restaurant.isAlreadySaved}
                        style={{
                          background: restaurant.isAlreadySaved ? '#f1f5f9' : '#007AFF',
@@ -548,6 +730,64 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
           </div>
         </div>
       )}
+
+      {/* Restaurant Detail Bottom Sheet */}
+      {showRestaurantDetail && selectedRestaurant && selectedSavedRec && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          zIndex: 4000,
+          paddingBottom: 'env(safe-area-inset-bottom)'
+        }} onClick={handleCloseRestaurantDetail}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px 20px 0 0',
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '85vh',
+            overflowY: 'auto',
+            animation: 'slideUp 0.3s ease-out',
+            padding: '20px 12px',
+            paddingBottom: `calc(20px + env(safe-area-inset-bottom))`
+          }} onClick={(e) => e.stopPropagation()}>
+            <RestaurantDetail
+              restaurant={selectedRestaurant}
+              savedRec={selectedSavedRec}
+              onClose={handleCloseRestaurantDetail}
+              onDelete={handleDeleteSavedRec}
+              onEdit={handleEditSavedRec}
+              supabase={supabase}
+              isModal={false}
+              hideHours={true}
+              hidePhone={true}
+              reducePadding={true}
+              showAddButton={!selectedRestaurant?.isAlreadySaved}
+              onAddToList={handleAddToMyList}
+            />
+
+
+          </div>
+        </div>
+      )}
+
+      {/* Add slideUp animation */}
+      <style jsx>{`
+        @keyframes slideUp {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   )
 } 

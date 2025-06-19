@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 
-export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, isModal = true }) {
+export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, isModal = true, hideHours = false, hidePhone = false, reducePadding = false, showAddButton = false, onAddToList = null }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editNotes, setEditNotes] = useState(savedRec.user_notes || '')
@@ -168,7 +168,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
       )}
 
       {/* Address & Contact */}
-      <div className="detail-section">
+      <div className="detail-section address-contact-section">
         {restaurant.address && (
           <div className="detail-item">
             <div className="item-label">📍 Address</div>
@@ -176,7 +176,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           </div>
         )}
 
-        {restaurant.phone && (
+        {!hidePhone && restaurant.phone && (
           <div className="detail-item">
             <div className="item-label">📞 Phone</div>
             <div className="item-value">
@@ -205,7 +205,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
       </div>
 
       {/* Hours */}
-      {hours && hours.weekdayText && (
+      {!hideHours && hours && hours.weekdayText && (
         <div className="detail-section">
           <div className="section-title">🕐 Hours</div>
           <div className="hours-list">
@@ -224,116 +224,120 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
       )}
 
       {/* Personal Notes */}
-      <div className="detail-section">
-        <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>📝 Personal Notes</span>
-          {!editMode && (
-            <button onClick={() => {
-              setEditMode(true)
-              setTimeout(() => {
-                if (notesTextareaRef.current) notesTextareaRef.current.focus()
-              }, 0)
-            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1em', color: '#3b82f6', marginLeft: 8 }} title="Edit notes">✏️</button>
-          )}
-        </div>
-        {editMode ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <textarea
-              ref={notesTextareaRef}
-              value={editNotes}
-              onChange={e => setEditNotes(e.target.value)}
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '16px',
-                resize: 'vertical',
-                marginBottom: '12px',
-                minHeight: '100px',
-                overflowY: 'auto'
-              }}
-              placeholder="Add your personal notes..."
-              autoFocus
-              onFocus={() => {
-                if (notesTextareaRef.current) {
-                  const modal = notesTextareaRef.current.closest('.modal');
-                  if (modal) {
-                    modal.scrollTop = notesTextareaRef.current.offsetTop - 20; // 20px padding
+      {!showAddButton && (
+        <div className="detail-section">
+          <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>📝 Personal Notes</span>
+            {!editMode && (
+              <button onClick={() => {
+                setEditMode(true)
+                setTimeout(() => {
+                  if (notesTextareaRef.current) notesTextareaRef.current.focus()
+                }, 0)
+              }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1em', color: '#3b82f6', marginLeft: 8 }} title="Edit notes">✏️</button>
+            )}
+          </div>
+          {editMode ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <textarea
+                ref={notesTextareaRef}
+                value={editNotes}
+                onChange={e => setEditNotes(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  resize: 'vertical',
+                  marginBottom: '12px',
+                  minHeight: '100px',
+                  overflowY: 'auto'
+                }}
+                placeholder="Add your personal notes..."
+                autoFocus
+                onFocus={() => {
+                  if (notesTextareaRef.current) {
+                    const modal = notesTextareaRef.current.closest('.modal');
+                    if (modal) {
+                      modal.scrollTop = notesTextareaRef.current.offsetTop - 20; // 20px padding
+                    }
                   }
-                }
-              }}
-            />
-            <button onClick={handleSave} disabled={saving} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 12px', fontWeight: 600, cursor: 'pointer', fontSize: '1em' }} title="Save notes">💾</button>
-          </div>
-        ) : (
-          savedRec.user_notes ? (
-            <div className="personal-notes">{savedRec.user_notes}</div>
-          ) : (
-            <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No notes yet.</div>
-          )
-        )}
-      </div>
-
-      {/* Tags */}
-      <div className="detail-section">
-        <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>🏷️ Tags</span>
-          {!editMode && (
-            <button onClick={() => {
-              setEditMode(true)
-              setTimeout(() => {
-                if (tagInputRef.current) tagInputRef.current.focus()
-              }, 0)
-            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1em', color: '#3b82f6', marginLeft: 8 }} title="Edit tags">✏️</button>
-          )}
-        </div>
-        {editMode ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px', marginBottom: '12px', alignItems: 'center' }}>
-            {editTags.map((tag, idx) => (
-              <span key={tag} style={{ background: '#eff6ff', color: '#3b82f6', padding: '4px 8px', borderRadius: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>
-                {tag}
-                <button onClick={() => handleRemoveTag(tag)} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1em' }} title="Remove tag">×</button>
-              </span>
-            ))}
-            <input
-              ref={tagInputRef}
-              type="text"
-              onKeyDown={handleTagInputKeyDown}
-              placeholder="Add tag"
-              style={{
-                border: 'none',
-                outline: 'none',
-                fontSize: '0.95em',
-                minWidth: 60,
-                maxWidth: 90,
-                background: '#3b82f6',
-                color: 'white',
-                borderRadius: '8px',
-                padding: '4px 12px',
-                marginLeft: '4px',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-                '::placeholder': { color: 'white', opacity: 1 },
-              }}
-            />
-            <button onClick={handleSave} disabled={saving} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 12px', fontWeight: 600, cursor: 'pointer', fontSize: '1em' }} title="Save tags">💾</button>
-          </div>
-        ) : (
-          savedRec.tags && savedRec.tags.length > 0 ? (
-            <div className="restaurant-tags">
-              {savedRec.tags.map((tag, index) => (
-                <span key={index} className="tag">
-                  {tag}
-                </span>
-              ))}
+                }}
+              />
+              <button onClick={handleSave} disabled={saving} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 12px', fontWeight: 600, cursor: 'pointer', fontSize: '1em' }} title="Save notes">💾</button>
             </div>
           ) : (
-            <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No tags yet.</div>
-          )
-        )}
-      </div>
+            savedRec.user_notes ? (
+              <div className="personal-notes">{savedRec.user_notes}</div>
+            ) : (
+              <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No notes yet.</div>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Tags */}
+      {!showAddButton && (
+        <div className="detail-section">
+          <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>🏷️ Tags</span>
+            {!editMode && (
+              <button onClick={() => {
+                setEditMode(true)
+                setTimeout(() => {
+                  if (tagInputRef.current) tagInputRef.current.focus()
+                }, 0)
+              }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1em', color: '#3b82f6', marginLeft: 8 }} title="Edit tags">✏️</button>
+            )}
+          </div>
+          {editMode ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px', marginBottom: '12px', alignItems: 'center' }}>
+              {editTags.map((tag, idx) => (
+                <span key={tag} style={{ background: '#eff6ff', color: '#3b82f6', padding: '4px 8px', borderRadius: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center' }}>
+                  {tag}
+                  <button onClick={() => handleRemoveTag(tag)} style={{ marginLeft: 4, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1em' }} title="Remove tag">×</button>
+                </span>
+              ))}
+              <input
+                ref={tagInputRef}
+                type="text"
+                onKeyDown={handleTagInputKeyDown}
+                placeholder="Add tag"
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '0.95em',
+                  minWidth: 60,
+                  maxWidth: 90,
+                  background: '#3b82f6',
+                  color: 'white',
+                  borderRadius: '8px',
+                  padding: '4px 12px',
+                  marginLeft: '4px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  '::placeholder': { color: 'white', opacity: 1 },
+                }}
+              />
+              <button onClick={handleSave} disabled={saving} style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '8px 12px', fontWeight: 600, cursor: 'pointer', fontSize: '1em' }} title="Save tags">💾</button>
+            </div>
+          ) : (
+            savedRec.tags && savedRec.tags.length > 0 ? (
+              <div className="restaurant-tags">
+                {savedRec.tags.map((tag, index) => (
+                  <span key={index} className="tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No tags yet.</div>
+            )
+          )}
+        </div>
+      )}
 
       {/* Reviews */}
       {reviews.length > 0 && (
@@ -356,29 +360,40 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
       {/* Action Buttons */}
       <div className="detail-actions">
-        <button className="action-button primary" onClick={handleGetDirections}>
-          🗺️ Get Directions
-        </button>
-        {editMode ? (
+        {showAddButton ? (
+          <button 
+            className="action-button add-button" 
+            onClick={() => onAddToList && onAddToList(restaurant)}
+          >
+            ➕ Add to My Places
+          </button>
+        ) : (
           <>
-            <button className="action-button primary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save'}
+            <button className="action-button primary" onClick={handleGetDirections}>
+              🗺️ Get Directions
             </button>
-            <button className="action-button secondary" onClick={() => setEditMode(false)} disabled={saving}>
-              Cancel
+            {editMode ? (
+              <>
+                <button className="action-button primary" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button className="action-button secondary" onClick={() => setEditMode(false)} disabled={saving}>
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button className="action-button secondary" onClick={() => setEditMode(true)}>
+                ✏️ Edit
+              </button>
+            )}
+            <button 
+              className="action-button danger" 
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              🗑️ Delete
             </button>
           </>
-        ) : (
-          <button className="action-button secondary" onClick={() => setEditMode(true)}>
-            ✏️ Edit
-          </button>
         )}
-        <button 
-          className="action-button danger" 
-          onClick={() => setShowDeleteConfirm(true)}
-        >
-          🗑️ Delete
-        </button>
       </div>
 
       {/* Delete Confirmation */}
@@ -445,12 +460,21 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           margin: 0;
         }
         .detail-section {
-          margin-bottom: 20px;
+          margin-bottom: ${reducePadding ? '24px' : '20px'};
         }
         .section-title {
           font-size: 1.2rem;
           font-weight: 600;
           margin-bottom: 8px;
+        }
+        .detail-item {
+          margin-bottom: ${reducePadding ? '14px' : '12px'};
+        }
+        .detail-item:last-child {
+          margin-bottom: 0;
+        }
+        .address-contact-section {
+          margin-top: ${reducePadding ? '13px' : '20px'};
         }
         .item-label {
           font-weight: 600;
@@ -502,6 +526,14 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           background: #ef4444;
           color: white;
         }
+        .add-button {
+          background: #10b981;
+          color: white;
+          font-size: 16px;
+          padding: 12px 24px;
+          width: 100%;
+          margin-bottom: 35px;
+        }
         .delete-confirm {
           margin-top: 20px;
           padding: 16px;
@@ -540,13 +572,13 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           font-size: 0.9em;
         }
         .restaurant-detail-content {
-          padding-left: 10px;
-          padding-right: 10px;
+          padding-left: ${reducePadding ? '0px' : '10px'};
+          padding-right: ${reducePadding ? '0px' : '10px'};
         }
         @media (min-width: 768px) {
           .restaurant-detail-content {
-            padding-left: 30px;
-            padding-right: 30px;
+            padding-left: ${reducePadding ? '0px' : '30px'};
+            padding-right: ${reducePadding ? '0px' : '30px'};
           }
         }
       `}</style>
