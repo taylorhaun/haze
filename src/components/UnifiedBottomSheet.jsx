@@ -258,7 +258,9 @@ export default function UnifiedBottomSheet({
         overflowY: 'auto',
         overflowX: 'hidden', // Prevent horizontal scrolling
         padding: type === 'search' ? '8px 0' : '0',
-        paddingBottom: type === 'restaurant' ? '80px' : '120px', // More space for search results and bottom navigation
+        paddingBottom: type === 'restaurant' 
+          ? 'calc(80px + env(safe-area-inset-bottom))' 
+          : 'calc(120px + env(safe-area-inset-bottom))', // Account for bottom nav + iOS safe area
         overscrollBehavior: 'contain',
         WebkitOverflowScrolling: 'touch'
       }}>
