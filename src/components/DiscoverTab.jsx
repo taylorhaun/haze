@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
+import TopSavedView from './TopSavedView'
 
-export default function DiscoverTab({ onAddRestaurant }) {
+export default function DiscoverTab({ onAddRestaurant, supabase, session, onRestaurantAdded }) {
   const [showComingSoon, setShowComingSoon] = useState(false)
-  const [showTopSavedSoon, setShowTopSavedSoon] = useState(false)
+  const [showTopSaved, setShowTopSaved] = useState(false)
 
   const quickActions = [
-    { icon: '⭐', title: 'Top Saved', subtitle: 'Discover the top saved places on haze.', action: () => setShowTopSavedSoon(true) },
+    { icon: '⭐', title: 'Top Saved', subtitle: 'Discover the top saved places on haze.', action: () => setShowTopSaved(true) },
     { icon: '🎯', title: 'Taste Match', subtitle: 'See what places you have in common with your friends', action: () => setShowComingSoon(true) }
   ]
 
@@ -208,69 +209,17 @@ export default function DiscoverTab({ onAddRestaurant }) {
         </div>
       )}
 
-      {/* Top Saved Modal */}
-      {showTopSavedSoon && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }} onClick={() => setShowTopSavedSoon(false)}>
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '300px',
-            width: '100%',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{
-              fontSize: '48px',
-              marginBottom: '16px'
-            }}>
-              🚧
-            </div>
-            <h3 style={{
-              margin: '0 0 8px 0',
-              fontSize: '20px',
-              fontWeight: '700',
-              color: '#1C1C1E'
-            }}>
-              Coming Soon!
-            </h3>
-            <p style={{
-              margin: '0 0 20px 0',
-              fontSize: '16px',
-              color: '#8E8E93',
-              lineHeight: 1.4
-            }}>
-              Top Saved is currently in development. Stay tuned!
-            </p>
-            <button
-              onClick={() => setShowTopSavedSoon(false)}
-              style={{
-                background: '#007AFF',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 24px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
+      {/* Top Saved View */}
+      {showTopSaved && (
+        <TopSavedView
+          supabase={supabase}
+          session={session}
+          onClose={() => setShowTopSaved(false)}
+          onAddToMyList={(restaurant) => {
+            console.log('Added restaurant from Top Saved:', restaurant)
+            if (onRestaurantAdded) onRestaurantAdded()
+          }}
+        />
       )}
     </div>
   )

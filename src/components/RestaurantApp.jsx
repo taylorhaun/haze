@@ -223,6 +223,9 @@ export default function RestaurantApp({ session, supabase }) {
         return (
           <DiscoverTab
             onAddRestaurant={handleAddRestaurantClick}
+            supabase={supabase}
+            session={session}
+            onRestaurantAdded={handleRestaurantAdded}
           />
         )
       
