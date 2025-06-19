@@ -122,28 +122,6 @@ export default function DiscoverTab({ onAddRestaurant, supabase, session, onRest
         </div>
       </div>
 
-      {/* Coming Soon Notice */}
-      <div style={{
-        margin: '32px 20px 0 20px',
-        maxWidth: '500px',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        padding: '16px',
-        background: 'rgba(255, 149, 0, 0.1)',
-        borderRadius: '12px',
-        border: '1px solid rgba(255, 149, 0, 0.2)'
-      }}>
-        <p style={{
-          margin: 0,
-          fontSize: '14px',
-          color: '#FF8C00',
-          textAlign: 'center',
-          lineHeight: 1.4
-        }}>
-          🚧 More discovery features coming soon! For now, the Instagram import (➕ button) is the best way to add places.
-        </p>
-      </div>
-
       {/* Coming Soon Modal */}
       {showComingSoon && (
         <div style={{

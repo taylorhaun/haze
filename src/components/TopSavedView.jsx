@@ -26,8 +26,8 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchMyRestaurants()
-      await fetchTopSaved()
+      const myIds = await fetchMyRestaurants()
+      await fetchTopSaved(myIds)
     }
     loadData()
   }, [])
@@ -50,13 +50,17 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
         .eq('user_id', session.user.id)
 
       if (error) throw error
-      setMyRestaurantIds(new Set(data.map(rec => rec.restaurant_id)))
+      const restaurantIds = new Set(data.map(rec => rec.restaurant_id))
+      setMyRestaurantIds(restaurantIds)
+      console.log('🔍 Loaded my restaurant IDs:', restaurantIds.size, 'restaurants')
+      return restaurantIds // Return the IDs for immediate use
     } catch (err) {
       console.error('Error fetching my restaurants:', err)
+      return new Set()
     }
   }
 
-  const fetchTopSaved = async () => {
+  const fetchTopSaved = async (myIds = null) => {
     setLoading(true)
     try {
       // Get aggregated restaurant data with save counts
@@ -65,13 +69,19 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
 
       if (error) throw error
       
+      // Use provided myIds or fallback to state
+      const idsToCheck = myIds || myRestaurantIds
+      
       // Add trend indicators and check if already saved
       const enrichedData = data.map((restaurant, index) => ({
         ...restaurant,
         trend: index < 3 ? 'hot' : index < 10 ? 'trending' : 'popular',
-        isAlreadySaved: myRestaurantIds.has(restaurant.id)
+        isAlreadySaved: idsToCheck.has(restaurant.id)
       }))
 
+      console.log('🔍 Top saved loaded with', enrichedData.length, 'restaurants')
+      console.log('🔍 Already saved check:', enrichedData.filter(r => r.isAlreadySaved).length, 'restaurants already saved')
+      
       setTopSaved(enrichedData)
     } catch (err) {
       console.error('Error fetching top saved:', err)
@@ -296,9 +306,11 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
         console.log('💾 Saving restaurant with photos/reviews:', restaurant.source_data.photos?.length || 0, 'photos')
       }
 
-      const { error } = await supabase
+      const { data: newSavedRec, error } = await supabase
         .from('saved_recs')
         .insert([savedRecData])
+        .select()
+        .single()
 
       if (error) throw error
 
@@ -311,6 +323,24 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
           ? { ...r, isAlreadySaved: true }
           : r
       ))
+      
+      // Update the selected restaurant if it's currently open
+      if (selectedRestaurant && selectedRestaurant.id === restaurant.id) {
+        const updatedSelectedRestaurant = {
+          ...selectedRestaurant,
+          isAlreadySaved: true
+        }
+        setSelectedRestaurant(updatedSelectedRestaurant)
+        
+        // Update the selected saved record with the actual saved data
+        const enhancedSavedRec = {
+          ...newSavedRec,
+          source_data: restaurant.source_data || {}
+        }
+        setSelectedSavedRec(enhancedSavedRec)
+        
+        console.log('🔄 Updated selected restaurant state after adding to list')
+      }
       
       // Notify parent
       if (onAddToMyList) onAddToMyList(restaurant)
@@ -678,7 +708,7 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 4000,
+          zIndex: 5000,
           padding: '20px'
         }} onClick={() => setShowSuccessModal(false)}>
           <div style={{
