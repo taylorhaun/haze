@@ -122,30 +122,38 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
       let enhancedSourceData = {}
       const { data: sampleSavedRecs, error: sampleError } = await supabase
         .from('saved_recs')
-        .select('source_data')
+        .select('source_data, created_at')
         .eq('restaurant_id', restaurant.id)
-        .not('source_data', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10) // Check more recent records
 
       if (!sampleError && sampleSavedRecs && sampleSavedRecs.length > 0) {
         console.log('🔍 Found', sampleSavedRecs.length, 'saved_recs for this restaurant')
+        console.log('🔍 Sample dates:', sampleSavedRecs.map(rec => rec.created_at))
         
         // Find the first saved_rec with actual photos/reviews
-        const recWithData = sampleSavedRecs.find(rec => 
-          rec.source_data && 
-          (rec.source_data.photos?.length > 0 || rec.source_data.reviews?.length > 0)
-        )
+        const recWithData = sampleSavedRecs.find(rec => {
+          const hasPhotos = rec.source_data?.photos?.length > 0
+          const hasReviews = rec.source_data?.reviews?.length > 0
+          console.log('🔍 Checking record from', rec.created_at, '- Photos:', hasPhotos, 'Reviews:', hasReviews)
+          return hasPhotos || hasReviews
+        })
         
         if (recWithData) {
           enhancedSourceData = recWithData.source_data
-          console.log('🔍 Using existing source_data with photos/reviews:', {
+          console.log('🔍 Using source_data from', recWithData.created_at, 'with photos/reviews:', {
             photos: enhancedSourceData.photos?.length || 0,
             reviews: enhancedSourceData.reviews?.length || 0
           })
         } else {
-          console.log('🔍 Found saved_recs but no photos/reviews in source_data')
+          console.log('🔍 Found saved_recs but no photos/reviews in any source_data')
+          console.log('🔍 Sample source_data structures:')
+          sampleSavedRecs.slice(0, 3).forEach((rec, i) => {
+            console.log(`   ${i+1}:`, rec.source_data ? Object.keys(rec.source_data) : 'null')
+          })
         }
       } else {
-        console.log('🔍 No source_data found in saved_recs for this restaurant')
+        console.log('🔍 No saved_recs found for this restaurant')
       }
 
       // Merge the full restaurant data with the community data and enhanced source data

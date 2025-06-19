@@ -344,16 +344,44 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
         <div className="detail-section">
           <div className="section-title">💬 Recent Reviews</div>
           <div className="reviews-list">
-            {reviews.slice(0, 2).map((review, index) => (
-              <div key={index} className="review-item">
-                <div className="review-header">
-                  <span className="review-rating">⭐ {review.rating}</span>
-                  <span className="review-author">{review.author}</span>
+            {reviews.slice(0, 2).map((review, index) => {
+              // Clean author name - remove rating numbers that got concatenated
+              let cleanAuthor = 'Anonymous'
+              if (review.author) {
+                // Remove any leading numbers (1-5 star ratings) followed by optional spaces
+                // This catches patterns like "5Amy Hall", "3Gregory Espina", "1Brian", etc.
+                cleanAuthor = review.author.replace(/^[12345]\s*/, '').trim()
+                
+                // If that didn't work, try removing any leading digits
+                if (cleanAuthor === review.author) {
+                  cleanAuthor = review.author.replace(/^\d+\s*/, '').trim()
+                }
+                
+                // Final fallback - remove everything before first letter
+                if (!cleanAuthor || /^\d/.test(cleanAuthor)) {
+                  const match = review.author.match(/[a-zA-Z].*/)
+                  cleanAuthor = match ? match[0].trim() : 'Anonymous'
+                }
+                
+                if (!cleanAuthor) cleanAuthor = 'Anonymous'
+              }
+              
+              // Limit review text to 150 characters with ellipsis
+              const truncatedText = review.text && review.text.length > 150 
+                ? review.text.substring(0, 150) + '...' 
+                : review.text
+
+              return (
+                <div key={index} className="review-item">
+                  <div className="review-header">
+                    <span className="review-rating">⭐ {review.rating}</span>
+                    <span className="review-author">{cleanAuthor}</span>
+                  </div>
+                  <div className="review-text">{truncatedText}</div>
+                  <div className="review-time">{review.time}</div>
                 </div>
-                <div className="review-text">{review.text}</div>
-                <div className="review-time">{review.time}</div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
