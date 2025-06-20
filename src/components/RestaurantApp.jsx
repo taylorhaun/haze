@@ -6,6 +6,8 @@ import DiscoverTab from './DiscoverTab'
 import ProfileTab from './ProfileTab'
 import BottomNavigation from './BottomNavigation'
 import SearchAndFilter from './SearchAndFilter'
+import SocialSetup from './SocialSetup'
+import FriendsTab from './FriendsTab'
 
 export default function RestaurantApp({ session, supabase }) {
   const [restaurants, setRestaurants] = useState([])
@@ -13,10 +15,50 @@ export default function RestaurantApp({ session, supabase }) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('map') // 'list', 'map', 'search', 'profile'
   const [showImporter, setShowImporter] = useState(false)
+  const [userProfile, setUserProfile] = useState(null)
+  const [showSocialSetup, setShowSocialSetup] = useState(false)
+
+  // Debug: log state changes
+  useEffect(() => {
+    console.log('🔍 showSocialSetup state changed:', showSocialSetup)
+  }, [showSocialSetup])
+
+  useEffect(() => {
+    console.log('🔍 userProfile state changed:', userProfile)
+  }, [userProfile])
 
   useEffect(() => {
     fetchRestaurants()
+    checkUserProfile()
   }, [])
+
+  const checkUserProfile = async () => {
+    try {
+      console.log('🔍 Checking user profile for:', session.user.id)
+      console.log('🔍 User email:', session.user.email)
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      console.log('🔍 Profile query result:', { data, error })
+
+      if (error && error.code === 'PGRST116') {
+        // No profile found - show setup
+        console.log('✅ No profile found - showing social setup')
+        setShowSocialSetup(true)
+      } else if (data) {
+        console.log('✅ Profile found:', data)
+        setUserProfile(data)
+      } else if (error) {
+        console.log('❌ Profile query error:', error)
+      }
+    } catch (err) {
+      console.error('❌ Error checking user profile:', err)
+    }
+  }
 
   // Update filtered restaurants when main restaurants list changes
   useEffect(() => {
@@ -99,6 +141,13 @@ export default function RestaurantApp({ session, supabase }) {
     setActiveTab(tabId)
   }
 
+  const handleSocialSetupComplete = () => {
+    setShowSocialSetup(false)
+    checkUserProfile() // Refresh profile data
+  }
+
+
+
   const renderCurrentTab = () => {
     if (loading) {
       return (
@@ -145,12 +194,12 @@ export default function RestaurantApp({ session, supabase }) {
               </h2>
               {restaurants.length > 0 && (
                 <p style={{
-                  margin: '0 0 20px 0',
+                  margin: '0 0 8px 0',
                   fontSize: '16px',
                   color: '#8E8E93',
                   lineHeight: 1.4
                 }}>
-                  {restaurants.length} saved restaurant{restaurants.length !== 1 ? 's' : ''}
+                  {restaurants.length} saved place{restaurants.length !== 1 ? 's' : ''}
                 </p>
               )}
             </div>
@@ -158,7 +207,7 @@ export default function RestaurantApp({ session, supabase }) {
             {/* Search and Filter for Saved Restaurants */}
             {restaurants.length > 0 && (
               <div style={{
-                padding: '0 20px 20px 20px',
+                padding: '0 20px 0px 20px',
                 maxWidth: '500px',
                 margin: '0 auto'
               }}>
@@ -219,13 +268,12 @@ export default function RestaurantApp({ session, supabase }) {
           </div>
         )
       
-      case 'search':
+      case 'friends':
         return (
-          <DiscoverTab
-            onAddRestaurant={handleAddRestaurantClick}
-            supabase={supabase}
+          <FriendsTab
             session={session}
-            onRestaurantAdded={handleRestaurantAdded}
+            supabase={supabase}
+            userProfile={userProfile}
           />
         )
       
@@ -234,6 +282,7 @@ export default function RestaurantApp({ session, supabase }) {
           <ProfileTab
             session={session}
             onSignOut={handleSignOut}
+            userProfile={userProfile}
           />
         )
       
@@ -266,6 +315,15 @@ export default function RestaurantApp({ session, supabase }) {
             onRestaurantAdded={handleRestaurantAdded}
           />
         </div>
+      )}
+
+      {/* Social Setup Modal */}
+      {showSocialSetup && (
+        <SocialSetup
+          session={session}
+          supabase={supabase}
+          onComplete={handleSocialSetupComplete}
+        />
       )}
 
       {/* Loading Animation CSS */}

@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "enhance-restaurants": "node enhance-restaurants-simple.js"
+    "enhance-restaurants": "node enhance-restaurants-simple.js",
+    "setup-social": "node setup-social-features.js"
   },
   "keywords": [],
   "author": "",

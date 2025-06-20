@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 
-export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, isModal = true, hideHours = false, hidePhone = false, reducePadding = false, showAddButton = false, onAddToList = null }) {
+export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, isModal = true, hideHours = false, hidePhone = false, reducePadding = false, showAddButton = false, onAddToList = null, viewOnly = false }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editNotes, setEditNotes] = useState(savedRec.user_notes || '')
@@ -228,7 +228,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
         <div className="detail-section">
           <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>📝 Personal Notes</span>
-            {!editMode && (
+            {!editMode && !viewOnly && (
               <button onClick={() => {
                 setEditMode(true)
                 setTimeout(() => {
@@ -283,7 +283,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
         <div className="detail-section">
           <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>🏷️ Tags</span>
-            {!editMode && (
+            {!editMode && !viewOnly && (
               <button onClick={() => {
                 setEditMode(true)
                 setTimeout(() => {
@@ -394,6 +394,10 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
             onClick={() => onAddToList && onAddToList(restaurant)}
           >
             ➕ Add to My Places
+          </button>
+        ) : viewOnly ? (
+          <button className="action-button primary" onClick={handleGetDirections}>
+            🗺️ Get Directions
           </button>
         ) : (
           <>

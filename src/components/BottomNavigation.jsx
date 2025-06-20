@@ -5,7 +5,7 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
     { id: 'list', icon: '📋', label: 'List' },
     { id: 'map', icon: '🗺️', label: 'Map' },
     { id: 'add', icon: '➕', label: 'Add', isCenter: true },
-    { id: 'search', icon: '🔍', label: 'Discover' },
+    { id: 'friends', icon: '👥', label: 'Friends' },
     { id: 'profile', icon: '👤', label: 'Profile' }
   ]
 
