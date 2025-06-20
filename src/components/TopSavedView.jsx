@@ -802,6 +802,7 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
               onDelete={handleDeleteSavedRec}
               onEdit={handleEditSavedRec}
               supabase={supabase}
+              session={session}
               isModal={false}
               hideHours={true}
               hidePhone={true}

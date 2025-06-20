@@ -17,6 +17,7 @@ export default function UnifiedBottomSheet({
   onDelete,
   onEdit,
   supabase,
+  session,
   
   // Shared props
   height,
@@ -353,6 +354,7 @@ export default function UnifiedBottomSheet({
                 onDelete={onDelete}
                 onEdit={onEdit}
                 supabase={supabase}
+                session={session}
                 isModal={false} // Important: tells RestaurantDetail it's in a bottom sheet, not a modal
               />
             </div>

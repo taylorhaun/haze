@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import UnifiedBottomSheet from './UnifiedBottomSheet'
 import RestaurantDetail from './RestaurantDetail'
 
-export default function RestaurantList({ restaurants, onRestaurantUpdate, onRestaurantDelete, supabase }) {
+export default function RestaurantList({ restaurants, onRestaurantUpdate, onRestaurantDelete, supabase, session }) {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null)
   const [selectedSavedRec, setSelectedSavedRec] = useState(null)
   const [bottomSheetHeight, setBottomSheetHeight] = useState('50vh')
@@ -91,6 +91,7 @@ export default function RestaurantList({ restaurants, onRestaurantUpdate, onRest
           onDelete={handleDelete}
           onEdit={handleEdit}
           supabase={supabase}
+          session={session}
           height={bottomSheetHeight}
           onHeightChange={setBottomSheetHeight}
         />

@@ -7,7 +7,9 @@ export default function SearchTab({
   filteredRestaurants,
   onFilteredResults, 
   allTags, 
-  onRestaurantDelete 
+  onRestaurantDelete,
+  supabase,
+  session
 }) {
   return (
     <div style={{
@@ -84,6 +86,8 @@ export default function SearchTab({
           <RestaurantList 
             restaurants={filteredRestaurants}
             onRestaurantDelete={onRestaurantDelete}
+            supabase={supabase}
+            session={session}
           />
         )}
       </div>

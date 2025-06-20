@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import FriendPlacesView from './FriendPlacesView'
+import CollaborativeLists from './CollaborativeLists'
 
 export default function FriendsTab({ session, supabase, userProfile }) {
-  const [activeSection, setActiveSection] = useState('friends') // 'friends', 'search', 'requests'
+  const [activeSection, setActiveSection] = useState('friends') // 'friends', 'search', 'requests', 'lists'
   const [friends, setFriends] = useState([])
   const [friendRequests, setFriendRequests] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -11,6 +12,7 @@ export default function FriendsTab({ session, supabase, userProfile }) {
   const [searching, setSearching] = useState(false)
   const [selectedFriend, setSelectedFriend] = useState(null)
   const [showFriendPlaces, setShowFriendPlaces] = useState(false)
+  const [showCollaborativeLists, setShowCollaborativeLists] = useState(false)
 
   useEffect(() => {
     console.log('🔍 FriendsTab mounted, fetching data...')
@@ -313,6 +315,12 @@ export default function FriendsTab({ session, supabase, userProfile }) {
       >
         📬 Requests {getRequestCount() > 0 && `(${getRequestCount()})`}
       </button>
+      <button
+        className={`tab-button ${activeSection === 'lists' ? 'active' : ''}`}
+        onClick={() => setShowCollaborativeLists(true)}
+      >
+        📝 Lists
+      </button>
     </div>
   )
 
@@ -577,6 +585,16 @@ export default function FriendsTab({ session, supabase, userProfile }) {
           setShowFriendPlaces(false)
           setSelectedFriend(null)
         }}
+      />
+    )
+  }
+
+  if (showCollaborativeLists) {
+    return (
+      <CollaborativeLists
+        session={session}
+        supabase={supabase}
+        onClose={() => setShowCollaborativeLists(false)}
       />
     )
   }

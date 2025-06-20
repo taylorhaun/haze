@@ -822,6 +822,7 @@ Please:
             onRestaurantUpdate(updatedRec);
           }}
           supabase={supabase}
+          session={session}
           height={searchSheetHeight}
           onHeightChange={setSearchSheetHeight}
         />

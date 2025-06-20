@@ -249,6 +249,7 @@ export default function RestaurantApp({ session, supabase }) {
                 onRestaurantDelete={handleRestaurantDelete}
                 onRestaurantUpdate={handleRestaurantUpdateInPlace}
                 supabase={supabase}
+                session={session}
               />
             )}
           </div>

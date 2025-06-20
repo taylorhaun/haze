@@ -1,6 +1,98 @@
 import React, { useState, useEffect, useRef } from 'react'
 
-export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, isModal = true, hideHours = false, hidePhone = false, reducePadding = false, showAddButton = false, onAddToList = null, viewOnly = false }) {
+// ShareModal component - defined before main component to avoid hoisting issues
+const ShareModal = ({ restaurant, friends, loading, onShare, onClose, sharing }) => {
+  const [selectedFriends, setSelectedFriends] = useState([])
+  const [message, setMessage] = useState('')
+
+  const toggleFriend = (friendId) => {
+    setSelectedFriends(prev => 
+      prev.includes(friendId)
+        ? prev.filter(id => id !== friendId)
+        : [...prev, friendId]
+    )
+  }
+
+  const handleSubmit = () => {
+    if (selectedFriends.length > 0) {
+      onShare(selectedFriends, message)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1003 }}>
+      <div className="modal share-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="share-header">
+          <h3>Share "{restaurant.name}"</h3>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+
+        {loading ? (
+          <div className="loading-friends">
+            <div>Loading friends...</div>
+          </div>
+        ) : friends.length === 0 ? (
+          <div className="no-friends">
+            <p>You don't have any friends yet.</p>
+            <p>Add friends to start sharing your favorite places!</p>
+          </div>
+        ) : (
+          <>
+            <div className="friends-list">
+              <p className="friends-header">Select friends to share with:</p>
+              {friends.map(friend => (
+                <div 
+                  key={friend.friend_id}
+                  className={`friend-item ${selectedFriends.includes(friend.friend_id) ? 'selected' : ''}`}
+                  onClick={() => toggleFriend(friend.friend_id)}
+                >
+                  <div className="friend-info">
+                    <div className="friend-name">{friend.profiles.display_name}</div>
+                    <div className="friend-username">@{friend.profiles.username}</div>
+                  </div>
+                  <div className="friend-checkbox">
+                    {selectedFriends.includes(friend.friend_id) ? '✓' : '○'}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="message-section">
+              <label>Optional message:</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Add a note about this place..."
+                rows={3}
+                maxLength={200}
+              />
+              <div className="char-count">{message.length}/200</div>
+            </div>
+
+            <div className="share-actions">
+              <button 
+                className="action-button secondary" 
+                onClick={onClose}
+                disabled={sharing}
+              >
+                Cancel
+              </button>
+              <button 
+                className="action-button primary" 
+                onClick={handleSubmit}
+                disabled={selectedFriends.length === 0 || sharing}
+              >
+                {sharing ? 'Sharing...' : `Share with ${selectedFriends.length} friend${selectedFriends.length !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, session, isModal = true, hideHours = false, hidePhone = false, reducePadding = false, showAddButton = false, onAddToList = null, viewOnly = false }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editNotes, setEditNotes] = useState(savedRec.user_notes || '')
@@ -8,6 +100,10 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
   const notesTextareaRef = useRef(null)
   const tagInputRef = useRef(null)
   const [saving, setSaving] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [friends, setFriends] = useState([])
+  const [loadingFriends, setLoadingFriends] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   useEffect(() => {
     setEditNotes(savedRec.user_notes || '')
@@ -129,6 +225,110 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
     if (!phone) return null
     // Simple formatting for display
     return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')
+  }
+
+  // Load friends when share modal opens
+  const fetchFriends = async () => {
+    if (!session?.user) return
+    
+    setLoadingFriends(true)
+    try {
+      const user = session.user
+
+      // Get accepted friendships where user is either requester or addressee
+      const { data: acceptedFriendships, error } = await supabase
+        .from('friendships')
+        .select('requester_id, addressee_id, created_at')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+
+      if (error) throw error
+
+      if (!acceptedFriendships?.length) {
+        setFriends([])
+        return
+      }
+
+      // Extract friend IDs (the other person in each friendship)
+      const friendIds = acceptedFriendships.map(friendship => 
+        friendship.requester_id === user.id 
+          ? friendship.addressee_id 
+          : friendship.requester_id
+      )
+
+      // Get friend profiles
+      const { data: friendProfiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, bio, avatar_url')
+        .in('id', friendIds)
+
+      if (profileError) throw profileError
+
+      // Combine friendship data with profiles
+      const friendsWithProfiles = acceptedFriendships.map(friendship => ({
+        friend_id: friendship.requester_id === user.id 
+          ? friendship.addressee_id 
+          : friendship.requester_id,
+        profiles: friendProfiles.find(p => p.id === (
+          friendship.requester_id === user.id 
+            ? friendship.addressee_id 
+            : friendship.requester_id
+        ))
+      }))
+
+      setFriends(friendsWithProfiles || [])
+    } catch (error) {
+      console.error('Error fetching friends:', error)
+      alert('Failed to load friends: ' + error.message)
+    } finally {
+      setLoadingFriends(false)
+    }
+  }
+
+  // Handle sharing place with selected friends
+  const handleSharePlace = async (selectedFriends, message = '') => {
+    if (!selectedFriends.length) return
+
+    setSharing(true)
+    try {
+      const user = session.user
+      if (!user) throw new Error('Not authenticated')
+
+      // Create share records for each selected friend
+      const sharePromises = selectedFriends.map(friendId => 
+        supabase
+          .from('place_shares')
+          .insert({
+            saved_rec_id: savedRec.id,
+            shared_by: user.id,
+            shared_with: friendId,
+            message: message || null
+          })
+      )
+
+      const results = await Promise.all(sharePromises)
+      
+      // Check for errors
+      const errors = results.filter(r => r.error)
+      if (errors.length > 0) {
+        throw new Error(`Failed to share with ${errors.length} friends`)
+      }
+
+      alert(`Successfully shared "${restaurant.name}" with ${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''}!`)
+      setShowShareModal(false)
+
+    } catch (error) {
+      console.error('Error sharing place:', error)
+      alert('Failed to share place: ' + error.message)
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  // Open share modal and load friends
+  const handleOpenShare = () => {
+    setShowShareModal(true)
+    fetchFriends()
   }
 
   const DetailContent = (
@@ -404,6 +604,9 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
             <button className="action-button primary" onClick={handleGetDirections}>
               🗺️ Get Directions
             </button>
+            <button className="action-button primary" onClick={handleOpenShare}>
+              📤 Share
+            </button>
             {editMode ? (
               <>
                 <button className="action-button primary" onClick={handleSave} disabled={saving}>
@@ -445,8 +648,22 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <ShareModal
+          restaurant={restaurant}
+          friends={friends}
+          loading={loadingFriends}
+          onShare={handleSharePlace}
+          onClose={() => setShowShareModal(false)}
+          sharing={sharing}
+        />
+      )}
     </div>
   )
+
+
 
   const ModalWrapper = ({ children }) => (
     <div className="modal-overlay" onClick={onClose}>
@@ -612,6 +829,129 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
             padding-left: ${reducePadding ? '0px' : '30px'};
             padding-right: ${reducePadding ? '0px' : '30px'};
           }
+        }
+        
+        /* Share Modal Styles */
+        .share-modal {
+          max-height: 80vh;
+          width: 90%;
+          max-width: 500px;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .share-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .share-header h3 {
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+        
+        .loading-friends, .no-friends {
+          text-align: center;
+          padding: 40px 20px;
+          color: #64748b;
+        }
+        
+        .friends-list {
+          margin-bottom: 20px;
+        }
+        
+        .friends-header {
+          font-weight: 600;
+          margin-bottom: 12px;
+          color: #1e293b;
+        }
+        
+        .friend-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          border: 2px solid #f1f5f9;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .friend-item:hover {
+          border-color: #e2e8f0;
+          background: #f8fafc;
+        }
+        
+        .friend-item.selected {
+          border-color: #3b82f6;
+          background: #eff6ff;
+        }
+        
+        .friend-info {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .friend-name {
+          font-weight: 600;
+          color: #1e293b;
+        }
+        
+        .friend-username {
+          font-size: 0.875rem;
+          color: #64748b;
+        }
+        
+        .friend-checkbox {
+          font-size: 1.25rem;
+          color: #3b82f6;
+        }
+        
+        .message-section {
+          margin-bottom: 20px;
+        }
+        
+        .message-section label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 8px;
+          color: #1e293b;
+        }
+        
+        .message-section textarea {
+          width: 100%;
+          padding: 12px;
+          border: 2px solid #e2e8f0;
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 14px;
+          resize: vertical;
+          outline: none;
+          transition: border-color 0.2s;
+          box-sizing: border-box;
+        }
+        
+        .message-section textarea:focus {
+          border-color: #3b82f6;
+        }
+        
+        .char-count {
+          text-align: right;
+          font-size: 0.75rem;
+          color: #64748b;
+          margin-top: 4px;
+        }
+        
+        .share-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
         }
       `}</style>
     </>
