@@ -10,7 +10,6 @@ export default function ProfileTab({ session, onSignOut }) {
       <PageHeader
         title="Profile"
         icon="👤"
-        subtitle="Manage your account and preferences"
       />
 
       {/* User Info Card */}
@@ -83,13 +82,28 @@ export default function ProfileTab({ session, onSignOut }) {
         </a>
 
         {/* Sign Out Button */}
-        <Button 
-          variant="danger" 
+        <button
           onClick={onSignOut}
-          style={{ width: '100%' }}
+          style={{
+            ...commonStyles.button.base,
+            background: '#FF3B30',
+            color: colors.background.primary,
+            border: 'none',
+            width: '100%',
+            fontSize: typography.size.base,
+            fontWeight: typography.weight.semibold,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#D70015'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#FF3B30'
+          }}
         >
           🚪 Sign Out
-        </Button>
+        </button>
       </div>
     </Container>
   )

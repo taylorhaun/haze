@@ -29,31 +29,14 @@ export default function DiscoverTab({ onAddRestaurant, supabase, session, onRest
         }}>
           🔍 Discover
         </h2>
-        <p style={{
-          margin: '0 0 24px 0',
-          fontSize: '16px',
-          color: '#8E8E93',
-          lineHeight: 1.4
-        }}>
-          Find new places to add to your collection
-        </p>
-      </div>
+              </div>
 
-      {/* Quick Actions */}
+      {/* Action Buttons */}
       <div style={{
         padding: '0 20px',
         maxWidth: '500px',
         margin: '0 auto'
       }}>
-        <h3 style={{
-          margin: '0 0 16px 0',
-          fontSize: '18px',
-          fontWeight: '600',
-          color: '#1C1C1E'
-        }}>
-          Quick Actions
-        </h3>
-        
         <div style={{
           display: 'grid',
           gap: '12px'
