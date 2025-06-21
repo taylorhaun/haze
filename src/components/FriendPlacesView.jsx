@@ -121,12 +121,12 @@ export default function FriendPlacesView({ friend, session, supabase, onClose })
       const searchLower = searchQuery.toLowerCase()
       const matchesName = place.restaurants.name.toLowerCase().includes(searchLower)
       const matchesAddress = place.restaurants.address?.toLowerCase().includes(searchLower)
-      const matchesNotes = place.user_notes?.toLowerCase().includes(searchLower)
+      // NEVER search through personal notes - privacy violation!
       const matchesTags = place.is_public_tags && place.tags?.some(tag => 
         tag.toLowerCase().includes(searchLower)
       )
       
-      if (!matchesName && !matchesAddress && !matchesNotes && !matchesTags) {
+      if (!matchesName && !matchesAddress && !matchesTags) {
         return false
       }
     }
@@ -292,9 +292,7 @@ export default function FriendPlacesView({ friend, session, supabase, onClose })
                     </div>
                   )}
 
-                  {place.user_notes && (
-                    <div className="place-notes">"{place.user_notes}"</div>
-                  )}
+                  {/* NEVER show personal notes to other users - privacy violation! */}
 
                   {renderTags(place)}
 

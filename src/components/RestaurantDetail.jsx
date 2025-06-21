@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 // ShareModal component - defined before main component to avoid hoisting issues
 const ShareModal = ({ restaurant, friends, loading, onShare, onClose, sharing }) => {
@@ -19,13 +20,13 @@ const ShareModal = ({ restaurant, friends, loading, onShare, onClose, sharing })
     }
   }
 
-  return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1003 }}>
-      <div className="modal share-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="share-header">
-          <h3>Share "{restaurant.name}"</h3>
-          <button className="close-button" onClick={onClose}>×</button>
-        </div>
+  return createPortal(
+    <div className="share-modal-fullscreen" onClick={(e) => e.stopPropagation()}>
+      <div className="share-header">
+        <button className="back-button" onClick={onClose}>← Back</button>
+        <h3>Share "{restaurant.name}"</h3>
+        <div></div>
+      </div>
 
         {loading ? (
           <div className="loading-friends">
@@ -48,7 +49,6 @@ const ShareModal = ({ restaurant, friends, loading, onShare, onClose, sharing })
                 >
                   <div className="friend-info">
                     <div className="friend-name">{friend.profiles.display_name}</div>
-                    <div className="friend-username">@{friend.profiles.username}</div>
                   </div>
                   <div className="friend-checkbox">
                     {selectedFriends.includes(friend.friend_id) ? '✓' : '○'}
@@ -59,14 +59,16 @@ const ShareModal = ({ restaurant, friends, loading, onShare, onClose, sharing })
 
             <div className="message-section">
               <label>Optional message:</label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Add a note about this place..."
-                rows={3}
-                maxLength={200}
-              />
-              <div className="char-count">{message.length}/200</div>
+              <div className="textarea-container">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Add a note about this place..."
+                  rows={3}
+                  maxLength={200}
+                />
+                <div className="char-count">{message.length}/200</div>
+              </div>
             </div>
 
             <div className="share-actions">
@@ -87,8 +89,8 @@ const ShareModal = ({ restaurant, friends, loading, onShare, onClose, sharing })
             </div>
           </>
         )}
-      </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -978,21 +980,47 @@ export default function RestaurantDetail({
         }
         
         /* Share Modal Styles */
-        .share-modal {
-          max-height: 80vh;
-          width: 90%;
-          max-width: 500px;
-          align-items: center;
-          justify-content: center;
+        .share-modal-fullscreen {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: white;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+          padding: 16px;
+          box-sizing: border-box;
         }
         
         .share-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
-          padding-bottom: 16px;
+          margin-bottom: 16px;
+          padding-bottom: 12px;
           border-bottom: 1px solid #e2e8f0;
+          position: sticky;
+          top: 0;
+          background: white;
+          z-index: 1;
+        }
+        
+        .back-button {
+          background: none;
+          border: none;
+          font-size: 16px;
+          color: #3b82f6;
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 6px;
+          font-weight: 600;
+        }
+        
+        .back-button:hover {
+          background: #f1f5f9;
         }
         
         .share-header h3 {
@@ -1008,23 +1036,26 @@ export default function RestaurantDetail({
         }
         
         .friends-list {
-          margin-bottom: 20px;
+          margin-bottom: 16px;
+          flex: 1;
+          overflow-y: auto;
         }
         
         .friends-header {
           font-weight: 600;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
           color: #1e293b;
+          font-size: 0.95rem;
         }
         
         .friend-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 12px 16px;
-          border: 2px solid #f1f5f9;
-          border-radius: 8px;
-          margin-bottom: 8px;
+          padding: 10px 14px;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          margin-bottom: 6px;
           cursor: pointer;
           transition: all 0.2s;
         }
@@ -1037,6 +1068,7 @@ export default function RestaurantDetail({
         .friend-item.selected {
           border-color: #3b82f6;
           background: #eff6ff;
+          border-width: 2px;
         }
         
         .friend-info {
@@ -1060,27 +1092,33 @@ export default function RestaurantDetail({
         }
         
         .message-section {
-          margin-bottom: 20px;
+          margin-bottom: 2px;
         }
         
         .message-section label {
           display: block;
           font-weight: 600;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           color: #1e293b;
+          font-size: 0.95rem;
+        }
+        
+        .textarea-container {
+          position: relative;
         }
         
         .message-section textarea {
           width: 100%;
-          padding: 12px;
-          border: 2px solid #e2e8f0;
-          border-radius: 8px;
+          padding: 10px 50px 10px 10px;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
           font-family: inherit;
           font-size: 14px;
           resize: vertical;
           outline: none;
           transition: border-color 0.2s;
           box-sizing: border-box;
+          min-height: 80px;
         }
         
         .message-section textarea:focus {
@@ -1088,16 +1126,25 @@ export default function RestaurantDetail({
         }
         
         .char-count {
-          text-align: right;
-          font-size: 0.75rem;
-          color: #64748b;
-          margin-top: 4px;
+          position: absolute;
+          bottom: 8px;
+          right: 10px;
+          font-size: 0.7rem;
+          color: #94a3b8;
+          pointer-events: none;
+          background: white;
+          padding: 0 2px;
         }
         
         .share-actions {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           justify-content: flex-end;
+          position: sticky;
+          bottom: 0;
+          background: white;
+          padding: 12px 0 2px 0;
+          margin-top: auto;
         }
       `}</style>
     </>

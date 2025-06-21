@@ -352,7 +352,6 @@ export default function FriendsTab({ session, supabase, userProfile }) {
             </div>
             <div className="friend-info">
               <div className="friend-name">{friend.profiles.display_name}</div>
-              <div className="friend-username">@{friend.profiles.username}</div>
               {friend.profiles.bio && (
                 <div className="friend-bio">{friend.profiles.bio}</div>
               )}
@@ -413,7 +412,6 @@ export default function FriendsTab({ session, supabase, userProfile }) {
             </div>
             <div className="friend-info">
               <div className="friend-name">{user.display_name}</div>
-              <div className="friend-username">@{user.username}</div>
               {user.statusText && (
                 <div className="relationship-status">{user.statusText}</div>
               )}
@@ -499,7 +497,6 @@ export default function FriendsTab({ session, supabase, userProfile }) {
                   </div>
                   <div className="friend-info">
                     <div className="friend-name">{request.profiles.display_name}</div>
-                    <div className="friend-username">@{request.profiles.username}</div>
                     {request.profiles.bio && (
                       <div className="friend-bio">{request.profiles.bio}</div>
                     )}
@@ -543,7 +540,6 @@ export default function FriendsTab({ session, supabase, userProfile }) {
               </div>
               <div className="friend-info">
                 <div className="friend-name">{request.profiles.display_name}</div>
-                <div className="friend-username">@{request.profiles.username}</div>
                 <div className="request-status">Request sent</div>
               </div>
             </div>
