@@ -689,29 +689,12 @@ export default function RestaurantDetail({
             </button>
             
             {config.showShare && (
-              <button className="action-button primary" onClick={handleOpenShare}>
+              <button className="action-button share-button" onClick={handleOpenShare}>
                 📤 Share
               </button>
             )}
             
-            {config.showEdit && (
-              <>
-                {editMode ? (
-                  <>
-                    <button className="action-button primary" onClick={handleSave} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save'}
-                    </button>
-                    <button className="action-button secondary" onClick={() => setEditMode(false)} disabled={saving}>
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button className="action-button secondary" onClick={() => setEditMode(true)}>
-                    ✏️ Edit
-                  </button>
-                )}
-              </>
-            )}
+
             
             {config.showDelete && (
               <button 
@@ -919,9 +902,15 @@ export default function RestaurantDetail({
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
+          flex: 1;
+          min-width: 0;
         }
         .primary {
           background: #3b82f6;
+          color: white;
+        }
+        .share-button {
+          background: #10b981;
           color: white;
         }
         .secondary {
