@@ -19,6 +19,13 @@ export const colors = {
     tertiary: '#F8FAFC',
   },
   
+  // Borders
+  border: {
+    default: '#E5E5EA',
+    light: '#F2F2F7',
+    dark: '#C7C7CC',
+  },
+  
   // Status colors
   success: '#34C759',
   warning: '#FF9500',

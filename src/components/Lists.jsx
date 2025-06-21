@@ -1,282 +1,21 @@
 import React, { useState, useEffect } from 'react'
+import { useLists } from '../hooks/useLists'
+import CreateListPage from './features/lists/CreateListPage'
 
 export default function Lists({ session, supabase, onClose, standalone = false }) {
-  const [lists, setLists] = useState([])
-  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingList, setEditingList] = useState(null)
+  
+  // Use our custom hook for data fetching
+  const { lists, loading, error, fetchLists } = useLists(supabase, session?.user?.id)
 
   const handleEditList = (list) => {
     setEditingList(list)
   }
 
-  useEffect(() => {
-    fetchLists()
-  }, [])
-
-  const fetchLists = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('lists')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setLists(data || [])
-    } catch (error) {
-      console.error('Error fetching lists:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const CreateListModal = () => {
-    const [listName, setListName] = useState('')
-    const [description, setDescription] = useState('')
-    const [isCollaborative, setIsCollaborative] = useState(false)
-    const [creating, setCreating] = useState(false)
-
-    const handleSubmit = async (e) => {
-      e.preventDefault()
-      if (!listName.trim()) return
-
-      setCreating(true)
-      try {
-        console.log('Session:', session)
-        console.log('User ID:', session?.user?.id)
-        
-        if (!session?.user?.id) {
-          throw new Error('No user session found. Please try logging in again.')
-        }
-        
-        const { data, error } = await supabase
-          .from('lists')
-          .insert([
-            {
-              name: listName.trim(),
-              description: description.trim() || null,
-              is_public: isCollaborative,
-              owner_id: session?.user?.id
-            }
-          ])
-          .select()
-
-        if (error) throw error
-
-        console.log('List created successfully:', data[0])
-        setShowCreateModal(false)
-        
-        // Reset form
-        setListName('')
-        setDescription('')
-        setIsCollaborative(false)
-        
-        // Refresh lists
-        fetchLists()
-      } catch (error) {
-        console.error('Error creating list:', error)
-        console.error('Full error details:', error.message, error.details, error.hint)
-        alert(`Failed to create list: ${error.message}`)
-      } finally {
-        setCreating(false)
-      }
-    }
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 5000,
-        padding: '20px'
-      }} onClick={() => setShowCreateModal(false)}>
-        <div style={{
-          background: 'white',
-          borderRadius: '16px',
-          padding: '24px',
-          maxWidth: '400px',
-          width: '100%',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
-        }} onClick={(e) => e.stopPropagation()}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px'
-          }}>
-            <h3 style={{
-              margin: 0,
-              fontSize: '20px',
-              fontWeight: '700',
-              color: '#1C1C1E'
-            }}>Create New List</h3>
-            <button 
-              onClick={() => setShowCreateModal(false)}
-              style={{
-                background: '#F2F2F7',
-                color: '#007AFF',
-                border: 'none',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#1C1C1E'
-              }}>List Name *</label>
-              <input
-                type="text"
-                value={listName}
-                onChange={(e) => setListName(e.target.value)}
-                placeholder="e.g., Date Night Spots, Weekend Brunch..."
-                maxLength={100}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #E5E5EA',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#007AFF'}
-                onBlur={(e) => e.target.style.borderColor = '#E5E5EA'}
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#1C1C1E'
-              }}>Description (optional)</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What's this list for?"
-                rows={3}
-                maxLength={300}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #E5E5EA',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  boxSizing: 'border-box',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#007AFF'}
-                onBlur={(e) => e.target.style.borderColor = '#E5E5EA'}
-              />
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                cursor: 'pointer',
-                marginBottom: '8px'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={isCollaborative}
-                  onChange={(e) => setIsCollaborative(e.target.checked)}
-                  style={{ margin: 0 }}
-                />
-                <span style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#1C1C1E'
-                }}>
-                  👥 Make this a collaborative list
-                </span>
-              </label>
-              <p style={{
-                margin: '0',
-                fontSize: '14px',
-                color: '#8E8E93',
-                lineHeight: 1.4,
-                paddingLeft: '24px'
-              }}>
-                {isCollaborative 
-                  ? 'Friends can add places to this list' 
-                  : 'Only you can add places to this list'
-                }
-              </p>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end'
-            }}>
-              <button 
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                disabled={creating}
-                style={{
-                  background: '#F2F2F7',
-                  color: '#8E8E93',
-                  border: 'none',
-                  padding: '12px 20px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: creating ? 'not-allowed' : 'pointer',
-                  opacity: creating ? 0.5 : 1
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                disabled={!listName.trim() || creating}
-                style={{
-                  background: (!listName.trim() || creating) ? '#8E8E93' : '#007AFF',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 20px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: (!listName.trim() || creating) ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {creating ? 'Creating...' : 'Create List'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
+  const handleListCreated = () => {
+    setShowCreateModal(false)
+    fetchLists() // Refresh the lists
   }
 
   const EditListModal = ({ list, onClose, onSave, onDelete }) => {
@@ -1573,7 +1312,14 @@ export default function Lists({ session, supabase, onClose, standalone = false }
         )}
       </div>
 
-      {showCreateModal && <CreateListModal />}
+      {showCreateModal && (
+        <CreateListPage
+          session={session}
+          supabase={supabase}
+          onClose={() => setShowCreateModal(false)}
+          onListCreated={handleListCreated}
+        />
+      )}
       {editingList && (
         <EditListModal 
           list={editingList}
@@ -1594,10 +1340,19 @@ export default function Lists({ session, supabase, onClose, standalone = false }
   if (loading) {
     return (
       <div className="lists-view">
-        <div className="header">
-          {!standalone && <button className="back-button" onClick={onClose}>← Back</button>}
-          <h2>Loading...</h2>
-        </div>
+        {standalone ? (
+          <div className="header">
+            <div className="header-info">
+              <h2>📝 Lists</h2>
+              <p className="subtitle">Loading your lists...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="header">
+            <button className="back-button" onClick={onClose}>← Back</button>
+            <h2>Loading...</h2>
+          </div>
+        )}
         <div className="loading-state">
           <div className="loading-spinner">🔄</div>
           <p>Loading your lists...</p>
@@ -1608,13 +1363,22 @@ export default function Lists({ session, supabase, onClose, standalone = false }
 
   return (
     <div className="lists-view">
-      <div className="header">
-        {!standalone && <button className="back-button" onClick={onClose}>← Back</button>}
-        <div className="header-info">
-          <h2>My Lists</h2>
-          <p className="subtitle">Organize your favorite places</p>
+      {standalone ? (
+        <div className="header">
+          <div className="header-info">
+            <h2>📝 Lists</h2>
+            <p className="subtitle">Collaborative collections of places</p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="header">
+          <button className="back-button" onClick={onClose}>← Back</button>
+          <div className="header-info">
+            <h2>My Lists</h2>
+            <p className="subtitle">Organize your favorite places</p>
+          </div>
+        </div>
+      )}
 
       {lists.length === 0 ? (
         <div className="empty-state">
@@ -1652,7 +1416,14 @@ export default function Lists({ session, supabase, onClose, standalone = false }
         </div>
       )}
 
-      {showCreateModal && <CreateListModal />}
+      {showCreateModal && (
+        <CreateListPage
+          session={session}
+          supabase={supabase}
+          onClose={() => setShowCreateModal(false)}
+          onListCreated={handleListCreated}
+        />
+      )}
 
       <style>{`
         .lists-view {
