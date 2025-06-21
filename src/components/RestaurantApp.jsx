@@ -9,6 +9,7 @@ import SearchAndFilter from './SearchAndFilter'
 import SocialSetup from './SocialSetup'
 import FriendsTab from './FriendsTab'
 import ListTab from './pages/ListTab'
+import ListsTab from './pages/ListsTab'
 
 export default function RestaurantApp({ session, supabase }) {
   const [restaurants, setRestaurants] = useState([])
@@ -202,6 +203,24 @@ export default function RestaurantApp({ session, supabase }) {
           }}>
             <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} onRestaurantUpdate={handleRestaurantUpdateInPlace} onRestaurantDelete={handleRestaurantDelete} />
           </div>
+        )
+      
+      case 'lists':
+        return (
+          <ListsTab
+            session={session}
+            supabase={supabase}
+          />
+        )
+      
+      case 'discover':
+        return (
+          <DiscoverTab
+            onAddRestaurant={handleAddRestaurantClick}
+            supabase={supabase}
+            session={session}
+            onRestaurantAdded={handleRestaurantAdded}
+          />
         )
       
       case 'friends':

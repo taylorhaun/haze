@@ -4,7 +4,9 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
   const tabs = [
     { id: 'list', icon: '📋', label: 'List' },
     { id: 'map', icon: '🗺️', label: 'Map' },
+    { id: 'lists', icon: '📝', label: 'Lists' },
     { id: 'add', icon: '➕', label: 'Add', isCenter: true },
+    { id: 'discover', icon: '🔍', label: 'Discover' },
     { id: 'friends', icon: '👥', label: 'Friends' },
     { id: 'profile', icon: '👤', label: 'Profile' }
   ]
@@ -37,7 +39,7 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '4px 8px 4px 8px',
+        padding: '4px 4px 4px 4px',
         maxWidth: '500px',
         margin: '0 auto'
       }}>
@@ -79,9 +81,9 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
           {centerTab.icon}
         </button>
         
-        {/* Left tabs */}
-        <div style={{ display: 'flex', flex: 1 }}>
-          {otherTabs.slice(0, 2).map((tab) => {
+        {/* Left tabs (3 tabs) */}
+        <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around' }}>
+          {otherTabs.slice(0, 3).map((tab) => {
             const isActive = activeTab === tab.id
 
             return (
@@ -96,11 +98,11 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '4px 6px',
+                  padding: '4px 2px',
                   borderRadius: '8px',
                   transition: 'all 0.2s ease',
                   color: isActive ? '#007AFF' : '#8E8E93',
-                  minWidth: '36px',
+                  minWidth: '32px',
                   flex: 1
                 }}
                 onMouseDown={(e) => {
@@ -114,14 +116,14 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
                 }}
               >
                 <span style={{
-                  fontSize: '18px',
+                  fontSize: '16px',
                   lineHeight: 1,
                   opacity: isActive ? 1 : 0.6
                 }}>
                   {tab.icon}
                 </span>
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: '8px',
                   fontWeight: isActive ? '600' : '400',
                   lineHeight: 1,
                   opacity: isActive ? 1 : 0.8
@@ -136,9 +138,9 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
         {/* Center space for the floating button */}
         <div style={{ width: '44px', height: '44px' }} />
 
-        {/* Right tabs */}
-        <div style={{ display: 'flex', flex: 1 }}>
-          {otherTabs.slice(2).map((tab) => {
+        {/* Right tabs (3 tabs) */}
+        <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around' }}>
+          {otherTabs.slice(3).map((tab) => {
             const isActive = activeTab === tab.id
 
             return (
@@ -153,11 +155,11 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '4px 6px',
+                  padding: '4px 2px',
                   borderRadius: '8px',
                   transition: 'all 0.2s ease',
                   color: isActive ? '#007AFF' : '#8E8E93',
-                  minWidth: '36px',
+                  minWidth: '32px',
                   flex: 1
                 }}
                 onMouseDown={(e) => {
@@ -171,14 +173,14 @@ export default function BottomNavigation({ activeTab, onTabChange, onAddRestaura
                 }}
               >
                 <span style={{
-                  fontSize: '18px',
+                  fontSize: '16px',
                   lineHeight: 1,
                   opacity: isActive ? 1 : 0.6
                 }}>
                   {tab.icon}
                 </span>
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: '8px',
                   fontWeight: isActive ? '600' : '400',
                   lineHeight: 1,
                   opacity: isActive ? 1 : 0.8

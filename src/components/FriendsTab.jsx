@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import FriendPlacesView from './FriendPlacesView'
-import Lists from './Lists'
 import Container from './ui/Layout/Container'
 import PageHeader from './ui/Layout/PageHeader'
 import Button from './ui/Button'
@@ -9,7 +8,7 @@ import LoadingSpinner from './ui/LoadingSpinner'
 import { colors, spacing, typography, borderRadius, commonStyles } from '../styles/tokens'
 
 export default function FriendsTab({ session, supabase, userProfile }) {
-  const [activeSection, setActiveSection] = useState('friends') // 'friends', 'search', 'requests', 'lists'
+  const [activeSection, setActiveSection] = useState('friends') // 'friends', 'search', 'requests'
   const [friends, setFriends] = useState([])
   const [friendRequests, setFriendRequests] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -18,7 +17,6 @@ export default function FriendsTab({ session, supabase, userProfile }) {
   const [searching, setSearching] = useState(false)
   const [selectedFriend, setSelectedFriend] = useState(null)
   const [showFriendPlaces, setShowFriendPlaces] = useState(false)
-  const [showLists, setShowLists] = useState(false)
 
 
   useEffect(() => {
@@ -373,26 +371,6 @@ export default function FriendsTab({ session, supabase, userProfile }) {
       >
         Requests {getRequestCount() > 0 && `(${getRequestCount()})`}
       </button>
-      <button
-        style={{
-          flex: 1,
-          background: 'transparent',
-          border: 'none',
-          padding: `${spacing.md} ${spacing.sm}`,
-          borderRadius: borderRadius.sm,
-          fontSize: typography.size.xs,
-          fontWeight: typography.weight.medium,
-          color: colors.text.secondary,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-        onClick={() => setShowLists(true)}
-      >
-        Lists
-      </button>
     </div>
   )
 
@@ -709,15 +687,7 @@ export default function FriendsTab({ session, supabase, userProfile }) {
     )
   }
 
-  if (showLists) {
-    return (
-      <Lists
-        session={session}
-        supabase={supabase}
-        onClose={() => setShowLists(false)}
-      />
-    )
-  }
+
 
 
 

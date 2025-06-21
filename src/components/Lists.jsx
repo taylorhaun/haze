@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-export default function Lists({ session, supabase, onClose }) {
+export default function Lists({ session, supabase, onClose, standalone = false }) {
   const [lists, setLists] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -1595,7 +1595,7 @@ export default function Lists({ session, supabase, onClose }) {
     return (
       <div className="lists-view">
         <div className="header">
-          <button className="back-button" onClick={onClose}>← Back</button>
+          {!standalone && <button className="back-button" onClick={onClose}>← Back</button>}
           <h2>Loading...</h2>
         </div>
         <div className="loading-state">
@@ -1609,7 +1609,7 @@ export default function Lists({ session, supabase, onClose }) {
   return (
     <div className="lists-view">
       <div className="header">
-        <button className="back-button" onClick={onClose}>← Back</button>
+        {!standalone && <button className="back-button" onClick={onClose}>← Back</button>}
         <div className="header-info">
           <h2>My Lists</h2>
           <p className="subtitle">Organize your favorite places</p>
