@@ -16,7 +16,10 @@ export function useLists(supabase, userId) {
     try {
       const { data, error } = await supabase
         .from('lists')
-        .select('*')
+        .select(`
+          *,
+          list_places(id)
+        `)
         .order('created_at', { ascending: false })
 
       if (error) throw error
