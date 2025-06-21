@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import FriendPlacesView from './FriendPlacesView'
 import Lists from './Lists'
+import Container from './ui/Layout/Container'
+import PageHeader from './ui/Layout/PageHeader'
+import Button from './ui/Button'
+import EmptyState from './ui/EmptyState'
+import LoadingSpinner from './ui/LoadingSpinner'
+import { colors, spacing, typography, borderRadius, commonStyles } from '../styles/tokens'
 
 export default function FriendsTab({ session, supabase, userProfile }) {
   const [activeSection, setActiveSection] = useState('friends') // 'friends', 'search', 'requests', 'lists'
@@ -297,77 +303,193 @@ export default function FriendsTab({ session, supabase, userProfile }) {
   }
 
   const renderSectionHeader = () => (
-    <div className="section-tabs">
+    <div style={{
+      display: 'flex',
+      background: colors.background.secondary,
+      borderRadius: borderRadius.md,
+      padding: spacing.xs,
+      marginBottom: spacing.xxl,
+    }}>
       <button
-        className={`tab-button ${activeSection === 'friends' ? 'active' : ''}`}
+        style={{
+          flex: 1,
+          background: activeSection === 'friends' ? colors.background.primary : 'transparent',
+          border: 'none',
+          padding: `${spacing.md} ${spacing.sm}`,
+          borderRadius: borderRadius.sm,
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.medium,
+          color: activeSection === 'friends' ? colors.primary : colors.text.secondary,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          boxShadow: activeSection === 'friends' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
         onClick={() => setActiveSection('friends')}
       >
-        👥 Friends ({friends.length})
+        Friends ({friends.length})
       </button>
       <button
-        className={`tab-button ${activeSection === 'search' ? 'active' : ''}`}
+        style={{
+          flex: 1,
+          background: activeSection === 'search' ? colors.background.primary : 'transparent',
+          border: 'none',
+          padding: `${spacing.md} ${spacing.sm}`,
+          borderRadius: borderRadius.sm,
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.medium,
+          color: activeSection === 'search' ? colors.primary : colors.text.secondary,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          boxShadow: activeSection === 'search' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
         onClick={() => setActiveSection('search')}
       >
-        🔍 Search
+        Search
       </button>
       <button
-        className={`tab-button ${activeSection === 'requests' ? 'active' : ''}`}
+        style={{
+          flex: 1,
+          background: activeSection === 'requests' ? colors.background.primary : 'transparent',
+          border: 'none',
+          padding: `${spacing.md} ${spacing.sm}`,
+          borderRadius: borderRadius.sm,
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.medium,
+          color: activeSection === 'requests' ? colors.primary : colors.text.secondary,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          boxShadow: activeSection === 'requests' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
         onClick={() => setActiveSection('requests')}
       >
-        📬 Requests {getRequestCount() > 0 && `(${getRequestCount()})`}
+        Requests {getRequestCount() > 0 && `(${getRequestCount()})`}
       </button>
       <button
-        className="tab-button"
+        style={{
+          flex: 1,
+          background: 'transparent',
+          border: 'none',
+          padding: `${spacing.md} ${spacing.sm}`,
+          borderRadius: borderRadius.sm,
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.medium,
+          color: colors.text.secondary,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
         onClick={() => setShowLists(true)}
       >
-        📝 Lists
+        Lists
       </button>
-
     </div>
   )
 
   const renderFriendsList = () => (
-    <div className="friends-list">
+    <div>
       {friends.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">👥</div>
-          <h3>No friends yet</h3>
-          <p>Search for friends to connect and share your favorite places!</p>
-          <button
-            className="primary-button"
-            onClick={() => setActiveSection('search')}
-          >
-            Find Friends
-          </button>
-        </div>
+        <EmptyState
+          icon="👥"
+          title="No friends yet"
+          description="Search for friends to connect and share your favorite places!"
+          actionLabel="Find Friends"
+          onAction={() => setActiveSection('search')}
+        />
       ) : (
         friends.map(friend => (
-          <div key={friend.friend_id} className="friend-item">
-            <div className="friend-avatar">
+          <div key={friend.friend_id} style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: spacing.md,
+            background: colors.background.primary,
+            borderRadius: borderRadius.md,
+            marginBottom: spacing.sm,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '20px',
+              marginRight: spacing.md,
+              overflow: 'hidden',
+            }}>
               {friend.profiles.avatar_url ? (
-                <img src={friend.profiles.avatar_url} alt="" />
+                <img 
+                  src={friend.profiles.avatar_url} 
+                  alt="" 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
               ) : (
-                <div className="avatar-placeholder">
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  background: colors.primary,
+                  color: colors.background.primary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: typography.size.lg,
+                  fontWeight: typography.weight.semibold,
+                }}>
                   {friend.profiles.display_name?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
             </div>
-            <div className="friend-info">
-              <div className="friend-name">{friend.profiles.display_name}</div>
+            <div style={{
+              flex: 1,
+              minWidth: 0,
+            }}>
+              <div style={{
+                fontSize: typography.size.base,
+                fontWeight: typography.weight.semibold,
+                color: colors.text.primary,
+                marginBottom: spacing.xs,
+              }}>
+                {friend.profiles.display_name}
+              </div>
               {friend.profiles.bio && (
-                <div className="friend-bio">{friend.profiles.bio}</div>
+                <div style={{
+                  fontSize: typography.size.sm,
+                  color: colors.text.secondary,
+                  lineHeight: typography.lineHeight.normal,
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                }}>
+                  {friend.profiles.bio}
+                </div>
               )}
             </div>
-            <div className="friend-actions">
-              <button 
-                className="secondary-button"
+            <div style={{
+              marginLeft: spacing.md,
+            }}>
+              <Button 
+                variant="primary"
+                size="small"
                 onClick={() => {
                   setSelectedFriend(friend)
                   setShowFriendPlaces(true)
                 }}
+                style={{ fontSize: '12px', padding: '6px 12px' }}
               >
                 View Places
-              </button>
+              </Button>
             </div>
           </div>
         ))
@@ -600,312 +722,15 @@ export default function FriendsTab({ session, supabase, userProfile }) {
 
 
   return (
-    <div className="friends-tab">
-      <div className="friends-header">
-        <h2>🤝 Friends</h2>
-        <p>Connect with friends and discover their favorite places</p>
-      </div>
+    <Container padding="minimal">
+      <PageHeader
+        title="Friends"
+        icon="🤝"
+      />
 
       {renderSectionHeader()}
       {renderCurrentSection()}
 
-      <style>{`
-        .friends-tab {
-          padding: 20px;
-          max-width: 500px;
-          margin: 0 auto;
-          min-height: 100vh;
-          padding-bottom: 100px;
-        }
-
-        .friends-header {
-          text-align: center;
-          margin-bottom: 24px;
-        }
-
-        .friends-header h2 {
-          margin: 0 0 8px 0;
-          font-size: 28px;
-          font-weight: 700;
-          color: #1C1C1E;
-        }
-
-        .friends-header p {
-          margin: 0;
-          color: #8E8E93;
-          font-size: 16px;
-          line-height: 1.4;
-        }
-
-        .section-tabs {
-          display: flex;
-          background: #F2F2F7;
-          border-radius: 12px;
-          padding: 4px;
-          margin-bottom: 24px;
-        }
-
-        .tab-button {
-          flex: 1;
-          background: transparent;
-          border: none;
-          padding: 12px 8px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #8E8E93;
-          cursor: pointer;
-          transition: all 0.2s;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .tab-button.active {
-          background: white;
-          color: #007AFF;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .tab-button:hover:not(.active) {
-          color: #007AFF;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 60px 20px;
-          color: #8E8E93;
-        }
-
-        .empty-icon {
-          font-size: 48px;
-          margin-bottom: 16px;
-        }
-
-        .empty-state h3 {
-          margin: 0 0 8px 0;
-          font-size: 20px;
-          font-weight: 600;
-          color: #1C1C1E;
-        }
-
-        .empty-state p {
-          margin: 0 0 24px 0;
-          font-size: 16px;
-          line-height: 1.4;
-        }
-
-        .friend-item, .search-result-item, .request-item {
-          display: flex;
-          align-items: center;
-          padding: 16px;
-          background: white;
-          border-radius: 12px;
-          margin-bottom: 12px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .friend-avatar {
-          width: 48px;
-          height: 48px;
-          border-radius: 24px;
-          margin-right: 12px;
-          overflow: hidden;
-        }
-
-        .friend-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .avatar-placeholder {
-          width: 100%;
-          height: 100%;
-          background: #007AFF;
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          font-weight: 600;
-        }
-
-        .friend-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .friend-name {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1C1C1E;
-          margin-bottom: 2px;
-        }
-
-        .friend-username {
-          font-size: 14px;
-          color: #8E8E93;
-          margin-bottom: 4px;
-        }
-
-        .relationship-status {
-          font-size: 12px;
-          font-weight: 500;
-          margin-bottom: 4px;
-        }
-
-        .search-result-item .relationship-status {
-          color: #34C759; /* Friends - green */
-        }
-
-        .search-result-item[data-status="incoming_request"] .relationship-status {
-          color: #FF3B30; /* Incoming request - red */
-        }
-
-        .search-result-item[data-status="outgoing_request"] .relationship-status {
-          color: #FF9500; /* Outgoing request - orange */
-        }
-
-        .friend-bio {
-          font-size: 14px;
-          color: #48484A;
-          line-height: 1.3;
-          overflow: hidden;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-        }
-
-        .request-status {
-          font-size: 12px;
-          color: #FF9500;
-          font-weight: 500;
-        }
-
-        .friend-actions, .request-actions {
-          display: flex;
-          gap: 8px;
-          margin-left: 12px;
-        }
-
-        .primary-button {
-          background: #007AFF;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .primary-button:hover:not(:disabled) {
-          background: #0056CC;
-        }
-
-        .primary-button:disabled {
-          background: #C7C7CC;
-          cursor: not-allowed;
-        }
-
-        .secondary-button {
-          background: #F2F2F7;
-          color: #007AFF;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .secondary-button:hover {
-          background: #E5E5EA;
-        }
-
-        .search-input-container {
-          position: relative;
-          margin-bottom: 24px;
-        }
-
-        .search-input {
-          width: 100%;
-          padding: 12px 16px;
-          border: 2px solid #E5E5EA;
-          border-radius: 12px;
-          font-size: 16px;
-          outline: none;
-          transition: border-color 0.2s;
-        }
-
-        .search-input:focus {
-          border-color: #007AFF;
-        }
-
-        .search-loading {
-          position: absolute;
-          right: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #8E8E93;
-        }
-
-        .search-hint, .no-results {
-          text-align: center;
-          padding: 40px 20px;
-          color: #8E8E93;
-          font-size: 16px;
-        }
-
-        .request-group {
-          margin-bottom: 32px;
-        }
-
-        .request-group h3 {
-          margin: 0 0 16px 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: #1C1C1E;
-        }
-
-        @media (max-width: 480px) {
-          .friends-tab {
-            padding: 16px;
-          }
-
-          .tab-button {
-            font-size: 12px;
-            padding: 10px 6px;
-          }
-
-          .friend-item, .search-result-item, .request-item {
-            padding: 12px;
-          }
-
-          .friend-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 20px;
-          }
-
-          .avatar-placeholder {
-            font-size: 16px;
-          }
-
-          .request-actions {
-            flex-direction: column;
-            gap: 4px;
-          }
-
-          .primary-button, .secondary-button {
-            padding: 6px 12px;
-            font-size: 12px;
-          }
-        }
-      `}</style>
-    </div>
+    </Container>
   )
 } 

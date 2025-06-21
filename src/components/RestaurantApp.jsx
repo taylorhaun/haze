@@ -8,6 +8,7 @@ import BottomNavigation from './BottomNavigation'
 import SearchAndFilter from './SearchAndFilter'
 import SocialSetup from './SocialSetup'
 import FriendsTab from './FriendsTab'
+import ListTab from './pages/ListTab'
 
 export default function RestaurantApp({ session, supabase }) {
   const [restaurants, setRestaurants] = useState([])
@@ -177,82 +178,16 @@ export default function RestaurantApp({ session, supabase }) {
     switch (activeTab) {
       case 'list':
         return (
-          <div style={{ paddingBottom: '100px' }}>
-            {/* List Header */}
-            <div style={{
-              padding: '20px 20px 0 20px',
-              maxWidth: '500px',
-              margin: '0 auto'
-            }}>
-              <h2 style={{
-                margin: '0 0 16px 0',
-                fontSize: '28px',
-                fontWeight: '700',
-                color: '#1C1C1E'
-              }}>
-                📋 My Places
-              </h2>
-              {restaurants.length > 0 && (
-                <p style={{
-                  margin: '0 0 8px 0',
-                  fontSize: '16px',
-                  color: '#8E8E93',
-                  lineHeight: 1.4
-                }}>
-                  {restaurants.length} saved place{restaurants.length !== 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
-
-            {/* Search and Filter for Saved Restaurants */}
-            {restaurants.length > 0 && (
-              <div style={{
-                padding: '0 20px 0px 20px',
-                maxWidth: '500px',
-                margin: '0 auto'
-              }}>
-                <SearchAndFilter
-                  restaurants={restaurants}
-                  onFilteredResults={handleFilteredResults}
-                  allTags={getAllTags()}
-                />
-              </div>
-            )}
-
-            {/* Restaurant List */}
-            {restaurants.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '60px 20px',
-                color: '#8E8E93'
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-                <h3 style={{
-                  margin: '0 0 8px 0',
-                  fontSize: '20px',
-                  fontWeight: '600',
-                  color: '#1C1C1E'
-                }}>
-                  No restaurants yet
-                </h3>
-                <p style={{
-                  margin: 0,
-                  fontSize: '16px',
-                  lineHeight: 1.4
-                }}>
-                  Tap the ➕ button to add your first restaurant from Instagram!
-                </p>
-              </div>
-            ) : (
-              <RestaurantList 
-                restaurants={filteredRestaurants}
-                onRestaurantDelete={handleRestaurantDelete}
-                onRestaurantUpdate={handleRestaurantUpdateInPlace}
-                supabase={supabase}
-                session={session}
-              />
-            )}
-          </div>
+          <ListTab
+            restaurants={restaurants}
+            filteredRestaurants={filteredRestaurants}
+            onFilteredResults={handleFilteredResults}
+            onRestaurantDelete={handleRestaurantDelete}
+            onRestaurantUpdate={handleRestaurantUpdateInPlace}
+            supabase={supabase}
+            session={session}
+            allTags={getAllTags()}
+          />
         )
       
       case 'map':

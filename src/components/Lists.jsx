@@ -546,268 +546,364 @@ export default function Lists({ session, supabase, onClose }) {
     const filteredSavedPlaces = searchAndSortPlaces()
 
     return (
-      <div className="modal-overlay">
-        <div className="modal">
-          <div className="modal-header">
-            <h3>Edit List</h3>
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 5000,
+        padding: '20px'
+      }} onClick={onClose}>
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          maxWidth: '500px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+        }} onClick={(e) => e.stopPropagation()}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{
+              margin: 0,
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1C1C1E'
+            }}>Edit List</h3>
             <button 
-              className="close-button"
               onClick={onClose}
+              style={{
+                background: '#F2F2F7',
+                color: '#007AFF',
+                border: 'none',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
             >
               Cancel
             </button>
           </div>
 
-          <form className="create-form" onSubmit={handleSubmit}>
-            <div className="form-content">
-              <div className="form-field">
-                <label>List Name *</label>
-                <input
-                  type="text"
-                  value={listName}
-                  onChange={(e) => setListName(e.target.value)}
-                  placeholder="e.g., Date Night Spots, Weekend Brunch..."
-                  maxLength={100}
-                  required
-                />
-              </div>
-
-              <div className="form-field">
-                <label>Description (optional)</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What's this list for?"
-                  rows={3}
-                  maxLength={300}
-                />
-              </div>
-
-              <div className="form-field">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={isCollaborative}
-                    onChange={(e) => setIsCollaborative(e.target.checked)}
-                  />
-                  <span className="checkbox-text">👥 Make this a collaborative list</span>
-                </label>
-                <p className="field-hint">
-                  {isCollaborative 
-                    ? 'Friends can add places to this list' 
-                    : 'Only you can add places to this list'
-                  }
-                </p>
-              </div>
-
-              {/* Places Management Section */}
-              <div className="form-field">
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '16px'
-                }}>
-                  <label>Places in this list ({listPlaces.length})</label>
-                  <button 
-                    type="button"
-                    onClick={() => setShowAddPlaces(!showAddPlaces)}
-                    style={{
-                      background: '#007AFF',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {showAddPlaces ? 'Done' : '+ Add Places'}
-                  </button>
-                </div>
-
-                                 {/* Add Places Interface */}
-                 {showAddPlaces ? (
-                   <div style={{
-                     border: '2px solid #007AFF',
-                     borderRadius: '8px',
-                     padding: '16px',
-                     marginBottom: '16px',
-                     background: '#F8F9FF'
-                   }}>
-                     <div style={{ marginBottom: '12px' }}>
-                       <input
-                         type="text"
-                         value={searchQuery}
-                         onChange={(e) => setSearchQuery(e.target.value)}
-                         placeholder="Search for 'Black Bear', 'Italian', etc..."
-                         autoFocus
-                         style={{
-                           width: '100%',
-                           padding: '8px 12px',
-                           border: '1px solid #D1D1D6',
-                           borderRadius: '6px',
-                           fontSize: '14px',
-                           boxSizing: 'border-box'
-                         }}
-                       />
-                     </div>
-                     
-                     <div style={{ 
-                       fontSize: '12px', 
-                       color: '#666', 
-                       marginBottom: '12px'
-                     }}>
-                       {loadingPlaces ? 'Loading...' : 
-                        `${filteredSavedPlaces.length} places ${searchQuery ? `matching "${searchQuery}"` : 'available'}`}
-                     </div>
-
-                     <div style={{ 
-                       maxHeight: '200px', 
-                       overflowY: 'auto',
-                       border: '1px solid #ddd',
-                       borderRadius: '6px',
-                       background: 'white'
-                     }}>
-                       {loadingPlaces ? (
-                         <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-                           <div>Loading your saved places...</div>
-                         </div>
-                       ) : filteredSavedPlaces.length === 0 ? (
-                         <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-                           <div style={{ fontSize: '16px', marginBottom: '4px' }}>
-                             {allSavedPlaces.length === 0 ? 'No saved places' : 
-                              searchQuery ? 'No matches found' : 'All places added!'}
-                           </div>
-                           <div style={{ fontSize: '12px' }}>
-                             {allSavedPlaces.length === 0 ? 'Save some places first' : 
-                              searchQuery ? `Try a different search` : 'All your saved places are in this list'}
-                           </div>
-                         </div>
-                       ) : (
-                         filteredSavedPlaces.map(savedPlace => {
-                           const restaurant = savedPlace.restaurants
-                           return (
-                             <div
-                               key={restaurant.id}
-                               style={{
-                                 padding: '8px 12px',
-                                 borderBottom: '1px solid #eee',
-                                 cursor: 'pointer',
-                                 display: 'flex',
-                                 justifyContent: 'space-between',
-                                 alignItems: 'center',
-                                 transition: 'background-color 0.2s'
-                               }}
-                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                             >
-                               <div style={{ flex: 1 }}>
-                                 <div style={{ 
-                                   fontWeight: '600', 
-                                   fontSize: '13px', 
-                                   color: '#333',
-                                   marginBottom: '2px'
-                                 }}>
-                                   {restaurant.name}
-                                   {savedPlace.searchScore && (
-                                     <span style={{ fontSize: '10px', color: '#999', marginLeft: '6px' }}>
-                                       ({savedPlace.searchScore})
-                                     </span>
-                                   )}
-                                 </div>
-                                 <div style={{ fontSize: '11px', color: '#666' }}>
-                                   {restaurant.cuisine_type}{restaurant.address ? ` • ${restaurant.address}` : ''}
-                                 </div>
-                               </div>
-                               <button 
-                                 onClick={() => addPlaceToList(restaurant)}
-                                 style={{
-                                   background: '#007AFF',
-                                   color: 'white',
-                                   border: 'none',
-                                   padding: '4px 8px',
-                                   borderRadius: '4px',
-                                   fontSize: '11px',
-                                   fontWeight: '600',
-                                   cursor: 'pointer',
-                                   marginLeft: '6px'
-                                 }}
-                               >
-                                 Add
-                               </button>
-                             </div>
-                           )
-                         })
-                       )}
-                     </div>
-                   </div>
-                 ) : null}
-
-                 {/* Current Places in List */}
-                 <div style={{
-                   maxHeight: '200px',
-                   overflowY: 'auto',
-                   border: '1px solid #E5E5EA',
-                   borderRadius: '8px',
-                   background: 'white'
-                 }}>
-                   {listPlaces.length === 0 ? (
-                     <div style={{ padding: '30px', textAlign: 'center', color: '#8E8E93' }}>
-                       <div style={{ fontSize: '24px', marginBottom: '8px' }}>🍽️</div>
-                       <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>No places yet</div>
-                       <div style={{ fontSize: '12px' }}>Add some places to get started!</div>
-                     </div>
-                   ) : (
-                     listPlaces.map(listPlace => {
-                       const restaurant = listPlace.restaurants
-                       return (
-                         <div
-                           key={listPlace.id}
-                           style={{
-                             padding: '12px',
-                             borderBottom: '1px solid #F2F2F7',
-                             display: 'flex',
-                             justifyContent: 'space-between',
-                             alignItems: 'center'
-                           }}
-                         >
-                           <div>
-                             <div style={{ fontWeight: '600', fontSize: '14px', color: '#1C1C1E' }}>
-                               {restaurant.name}
-                             </div>
-                             <div style={{ fontSize: '12px', color: '#8E8E93' }}>
-                               {restaurant.cuisine_type} • {restaurant.address}
-                             </div>
-                           </div>
-                           <button
-                             onClick={() => removePlaceFromList(listPlace.id)}
-                             style={{
-                               background: '#FF3B30',
-                               color: 'white',
-                               border: 'none',
-                               padding: '4px 8px',
-                               borderRadius: '4px',
-                               fontSize: '12px',
-                               fontWeight: '600',
-                               cursor: 'pointer'
-                             }}
-                           >
-                             Remove
-                           </button>
-                         </div>
-                       )
-                     })
-                   )}
-                 </div>
-               </div>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+                color: '#1C1C1E',
+                fontSize: '16px'
+              }}>List Name *</label>
+              <input
+                type="text"
+                value={listName}
+                onChange={(e) => setListName(e.target.value)}
+                placeholder="e.g., Date Night Spots, Weekend Brunch..."
+                maxLength={100}
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #E5E5EA',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+              />
             </div>
 
-            <div className="form-actions">
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+                color: '#1C1C1E',
+                fontSize: '16px'
+              }}>Description (optional)</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What's this list for?"
+                rows={3}
+                maxLength={300}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #E5E5EA',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  resize: 'vertical',
+                  minHeight: '80px',
+                  transition: 'border-color 0.2s'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '500'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={isCollaborative}
+                  onChange={(e) => setIsCollaborative(e.target.checked)}
+                  style={{
+                    marginRight: '12px',
+                    transform: 'scale(1.2)'
+                  }}
+                />
+                <span>👥 Make this a collaborative list</span>
+              </label>
+              <p style={{
+                margin: '8px 0 0 0',
+                fontSize: '14px',
+                color: '#8E8E93',
+                lineHeight: 1.4
+              }}>
+                {isCollaborative 
+                  ? 'Friends can add places to this list' 
+                  : 'Only you can add places to this list'
+                }
+              </p>
+            </div>
+
+            {/* Places Management Section */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '12px'
+              }}>
+                <label style={{
+                  fontWeight: '600',
+                  color: '#1C1C1E',
+                  fontSize: '16px'
+                }}>Places in this list ({listPlaces.length})</label>
+                <button
+                  type="button"
+                  onClick={() => setShowAddPlaces(!showAddPlaces)}
+                  style={{
+                    background: showAddPlaces ? '#F2F2F7' : '#007AFF',
+                    color: showAddPlaces ? '#007AFF' : 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {showAddPlaces ? 'Done' : '+ Add Places'}
+                </button>
+              </div>
+
+              {/* Add Places Interface */}
+              {showAddPlaces && (
+                <div style={{
+                  border: '2px solid #007AFF',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  marginBottom: '16px',
+                  background: '#F8F9FF'
+                }}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search for 'Black Bear', 'Italian', etc..."
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        border: '1px solid #D1D1D6',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#666', 
+                    marginBottom: '12px'
+                  }}>
+                    {loadingPlaces ? 'Loading...' : 
+                     `${filteredSavedPlaces.length} places ${searchQuery ? `matching "${searchQuery}"` : 'available'}`}
+                  </div>
+
+                  <div style={{ 
+                    maxHeight: '200px', 
+                    overflowY: 'auto',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    background: 'white'
+                  }}>
+                    {loadingPlaces ? (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                        <div>Loading your saved places...</div>
+                      </div>
+                    ) : filteredSavedPlaces.length === 0 ? (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                        <div style={{ fontSize: '16px', marginBottom: '4px' }}>
+                          {allSavedPlaces.length === 0 ? 'No saved places' : 
+                           searchQuery ? 'No matches found' : 'All places added!'}
+                        </div>
+                        <div style={{ fontSize: '12px' }}>
+                          {allSavedPlaces.length === 0 ? 'Save some places first' : 
+                           searchQuery ? `Try a different search` : 'All your saved places are in this list'}
+                        </div>
+                      </div>
+                    ) : (
+                      filteredSavedPlaces.map(savedPlace => {
+                        const restaurant = savedPlace.restaurants
+                        return (
+                          <div
+                            key={restaurant.id}
+                            style={{
+                              padding: '8px 12px',
+                              borderBottom: '1px solid #eee',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div style={{ 
+                                fontWeight: '600', 
+                                fontSize: '13px', 
+                                color: '#333',
+                                marginBottom: '2px'
+                              }}>
+                                {restaurant.name}
+                                {savedPlace.searchScore && (
+                                  <span style={{ fontSize: '10px', color: '#999', marginLeft: '6px' }}>
+                                    ({savedPlace.searchScore})
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#666' }}>
+                                {restaurant.cuisine_type}{restaurant.address ? ` • ${restaurant.address}` : ''}
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => addPlaceToList(restaurant)}
+                              style={{
+                                background: '#007AFF',
+                                color: 'white',
+                                border: 'none',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                marginLeft: '6px'
+                              }}
+                            >
+                              Add
+                            </button>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Current Places in List */}
+              <div style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                border: '1px solid #E5E5EA',
+                borderRadius: '8px',
+                background: 'white'
+              }}>
+                {listPlaces.length === 0 ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: '#8E8E93' }}>
+                    <div style={{ fontSize: '24px', marginBottom: '8px' }}>🍽️</div>
+                    <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>No places yet</div>
+                    <div style={{ fontSize: '12px' }}>Add some places to get started!</div>
+                  </div>
+                ) : (
+                  listPlaces.map(listPlace => {
+                    const restaurant = listPlace.restaurants
+                    return (
+                      <div
+                        key={listPlace.id}
+                        style={{
+                          padding: '12px',
+                          borderBottom: '1px solid #F2F2F7',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: '600', fontSize: '14px', color: '#1C1C1E' }}>
+                            {restaurant.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#8E8E93' }}>
+                            {restaurant.cuisine_type} • {restaurant.address}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removePlaceFromList(listPlace.id)}
+                          style={{
+                            background: '#FF3B30',
+                            color: 'white',
+                            border: 'none',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Form Actions */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              paddingTop: '20px',
+              borderTop: '1px solid #E5E5EA'
+            }}>
               <button 
                 type="button"
-                className="delete-button"
                 onClick={handleDelete}
                 disabled={deleting}
                 style={{
@@ -815,31 +911,51 @@ export default function Lists({ session, supabase, onClose }) {
                   color: 'white',
                   border: 'none',
                   padding: '12px 16px',
-                  borderRadius: '8px',
-                  fontSize: '14px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.5 : 1
                 }}
               >
-                {deleting ? 'Deleting...' : 'Delete List'}
+                {deleting ? 'Deleting...' : 'Delete'}
               </button>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  type="button"
-                  className="cancel-button"
-                  onClick={onClose}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="create-button"
-                  disabled={!listName.trim() || saving}
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
+              <button 
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  background: '#F2F2F7',
+                  color: '#8E8E93',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                disabled={!listName.trim() || saving}
+                style={{
+                  flex: 1,
+                  background: (!listName.trim() || saving) ? '#8E8E93' : '#007AFF',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: (!listName.trim() || saving) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </form>
         </div>
