@@ -10,6 +10,7 @@ import SocialSetup from './SocialSetup'
 import FriendsTab from './FriendsTab'
 import ListTab from './pages/ListTab'
 import ListsTab from './pages/ListsTab'
+import MapTab from './pages/MapTab'
 
 export default function RestaurantApp({ session, supabase }) {
   const [restaurants, setRestaurants] = useState([])
@@ -193,16 +194,13 @@ export default function RestaurantApp({ session, supabase }) {
       
       case 'map':
         return (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            overflow: 'hidden'
-          }}>
-            <MapView restaurants={filteredRestaurants} supabase={supabase} session={session} onRestaurantUpdate={handleRestaurantUpdateInPlace} onRestaurantDelete={handleRestaurantDelete} />
-          </div>
+          <MapTab
+            restaurants={filteredRestaurants}
+            supabase={supabase}
+            session={session}
+            onRestaurantUpdate={handleRestaurantUpdateInPlace}
+            onRestaurantDelete={handleRestaurantDelete}
+          />
         )
       
       case 'lists':
