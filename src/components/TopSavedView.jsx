@@ -803,10 +803,7 @@ export default function TopSavedView({ supabase, session, onClose, onAddToMyList
               onEdit={handleEditSavedRec}
               supabase={supabase}
               session={session}
-              isModal={false}
-              hideHours={true}
-              hidePhone={true}
-              reducePadding={true}
+              mode="discover"
               showAddButton={!selectedRestaurant?.isAlreadySaved}
               onAddToList={handleAddToMyList}
             />

@@ -92,9 +92,93 @@ const ShareModal = ({ restaurant, friends, loading, onShare, onClose, sharing })
   )
 }
 
-export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit, onDelete, supabase, session, isModal = true, hideHours = false, hidePhone = false, reducePadding = false, showAddButton = false, onAddToList = null, viewOnly = false }) {
+// Mode configuration - defines what features are available in each mode
+const MODE_CONFIG = {
+  full: {
+    showHours: true,
+    showPhone: true,
+    showNotes: true,
+    showTags: true,
+    showShare: true,
+    showEdit: true,
+    showDelete: true,
+    showAddButton: false,
+    isModal: false,
+    reducePadding: false
+  },
+  modal: {
+    showHours: true,
+    showPhone: true,
+    showNotes: true,
+    showTags: true,
+    showShare: true,
+    showEdit: true,
+    showDelete: true,
+    showAddButton: false,
+    isModal: true,
+    reducePadding: false
+  },
+  preview: {
+    showHours: false,
+    showPhone: false,
+    showNotes: false,
+    showTags: false,
+    showShare: false,
+    showEdit: false,
+    showDelete: false,
+    showAddButton: true,
+    isModal: false,
+    reducePadding: true
+  },
+  discover: {
+    showHours: false,
+    showPhone: false,
+    showNotes: false,
+    showTags: false,
+    showShare: false,
+    showEdit: false,
+    showDelete: false,
+    showAddButton: true,
+    isModal: true,
+    reducePadding: true
+  },
+  readonly: {
+    showHours: true,
+    showPhone: true,
+    showNotes: false,
+    showTags: false,
+    showShare: false,
+    showEdit: false,
+    showDelete: false,
+    showAddButton: false,
+    isModal: true,
+    reducePadding: false
+  }
+}
+
+export default function RestaurantDetail({ 
+  restaurant, 
+  savedRec, 
+  onClose, 
+  onEdit, 
+  onDelete, 
+  supabase, 
+  session, 
+  mode = 'full',
+  onAddToList = null,
+  showAddButton = null // Override for showAddButton
+}) {
+  // Get configuration for the current mode
+  const config = {
+    ...MODE_CONFIG[mode],
+    // Override showAddButton if explicitly provided
+    ...(showAddButton !== null && { showAddButton })
+  }
+  
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [showShareSuccessModal, setShowShareSuccessModal] = useState(false)
+  const [shareSuccessMessage, setShareSuccessMessage] = useState('')
   const [editNotes, setEditNotes] = useState(savedRec.user_notes || '')
   const [editTags, setEditTags] = useState(savedRec.tags || [])
   const notesTextareaRef = useRef(null)
@@ -172,7 +256,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
   // Prevent body scrolling when modal is open
   useEffect(() => {
-    if (isModal) {
+    if (config.isModal) {
       document.body.style.overflow = 'hidden'
       document.body.style.position = 'fixed'
       document.body.style.width = '100%'
@@ -183,7 +267,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
         document.body.style.width = ''
       }
     }
-  }, [isModal])
+  }, [config.isModal])
 
   if (!restaurant || !savedRec) return null
 
@@ -314,12 +398,15 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
         throw new Error(`Failed to share with ${errors.length} friends`)
       }
 
-      alert(`Successfully shared "${restaurant.name}" with ${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''}!`)
+      setShareSuccessMessage(`Successfully shared "${restaurant.name}" with ${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''}!`)
       setShowShareModal(false)
+      setShowShareSuccessModal(true)
 
     } catch (error) {
       console.error('Error sharing place:', error)
-      alert('Failed to share place: ' + error.message)
+      setShareSuccessMessage('Failed to share place: ' + error.message)
+      setShowShareModal(false)
+      setShowShareSuccessModal(true)
     } finally {
       setSharing(false)
     }
@@ -376,7 +463,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           </div>
         )}
 
-        {!hidePhone && restaurant.phone && (
+        {config.showPhone && restaurant.phone && (
           <div className="detail-item">
             <div className="item-label">📞 Phone</div>
             <div className="item-value">
@@ -405,7 +492,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
       </div>
 
       {/* Hours */}
-      {!hideHours && hours && hours.weekdayText && (
+      {config.showHours && hours && hours.weekdayText && (
         <div className="detail-section">
           <div className="section-title">🕐 Hours</div>
           <div className="hours-list">
@@ -424,11 +511,11 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
       )}
 
       {/* Personal Notes */}
-      {!showAddButton && (
+      {config.showNotes && (
         <div className="detail-section">
           <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>📝 Personal Notes</span>
-            {!editMode && !viewOnly && (
+            {!editMode && config.showEdit && (
               <button onClick={() => {
                 setEditMode(true)
                 setTimeout(() => {
@@ -479,11 +566,11 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
       )}
 
       {/* Tags */}
-      {!showAddButton && (
+      {config.showTags && (
         <div className="detail-section">
           <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>🏷️ Tags</span>
-            {!editMode && !viewOnly && (
+            {!editMode && config.showEdit && (
               <button onClick={() => {
                 setEditMode(true)
                 setTimeout(() => {
@@ -588,51 +675,58 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
       {/* Action Buttons */}
       <div className="detail-actions">
-        {showAddButton ? (
+        {config.showAddButton ? (
           <button 
             className="action-button add-button" 
             onClick={() => onAddToList && onAddToList(restaurant)}
           >
             ➕ Add to My Places
           </button>
-        ) : viewOnly ? (
-          <button className="action-button primary" onClick={handleGetDirections}>
-            🗺️ Get Directions
-          </button>
         ) : (
           <>
             <button className="action-button primary" onClick={handleGetDirections}>
               🗺️ Get Directions
             </button>
-            <button className="action-button primary" onClick={handleOpenShare}>
-              📤 Share
-            </button>
-            {editMode ? (
-              <>
-                <button className="action-button primary" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-                <button className="action-button secondary" onClick={() => setEditMode(false)} disabled={saving}>
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button className="action-button secondary" onClick={() => setEditMode(true)}>
-                ✏️ Edit
+            
+            {config.showShare && (
+              <button className="action-button primary" onClick={handleOpenShare}>
+                📤 Share
               </button>
             )}
-            <button 
-              className="action-button danger" 
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              🗑️ Delete
-            </button>
+            
+            {config.showEdit && (
+              <>
+                {editMode ? (
+                  <>
+                    <button className="action-button primary" onClick={handleSave} disabled={saving}>
+                      {saving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button className="action-button secondary" onClick={() => setEditMode(false)} disabled={saving}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button className="action-button secondary" onClick={() => setEditMode(true)}>
+                    ✏️ Edit
+                  </button>
+                )}
+              </>
+            )}
+            
+            {config.showDelete && (
+              <button 
+                className="action-button danger" 
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                🗑️ Delete
+              </button>
+            )}
           </>
         )}
       </div>
 
       {/* Delete Confirmation */}
-      {showDeleteConfirm && (
+      {config.showDelete && showDeleteConfirm && (
         <div className="delete-confirm" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', zIndex: 1002 }}>
           <p>Are you sure you want to delete this restaurant?</p>
           <div className="confirm-actions">
@@ -650,7 +744,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
       )}
 
       {/* Share Modal */}
-      {showShareModal && (
+      {config.showShare && showShareModal && (
         <ShareModal
           restaurant={restaurant}
           friends={friends}
@@ -660,10 +754,73 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           sharing={sharing}
         />
       )}
+
+      {/* Share Success Modal */}
+      {showShareSuccessModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 5000,
+          padding: '20px'
+        }} onClick={() => setShowShareSuccessModal(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '300px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '16px'
+            }}>
+              {shareSuccessMessage.includes('Failed') ? '❌' : '📤'}
+            </div>
+            <h3 style={{
+              margin: '0 0 8px 0',
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1C1C1E'
+            }}>
+              {shareSuccessMessage.includes('Failed') ? 'Share Failed' : 'Shared Successfully!'}
+            </h3>
+            <p style={{
+              margin: '0 0 20px 0',
+              fontSize: '16px',
+              color: '#8E8E93',
+              lineHeight: 1.4
+            }}>
+              {shareSuccessMessage}
+            </p>
+            <button
+              onClick={() => setShowShareSuccessModal(false)}
+              style={{
+                background: '#007AFF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              {shareSuccessMessage.includes('Failed') ? 'Try Again' : 'Awesome!'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
-
-
 
   const ModalWrapper = ({ children }) => (
     <div className="modal-overlay" onClick={onClose}>
@@ -675,7 +832,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
 
   return (
     <>
-      {isModal ? <ModalWrapper>{DetailContent}</ModalWrapper> : DetailContent}
+      {config.isModal ? <ModalWrapper>{DetailContent}</ModalWrapper> : DetailContent}
       <style jsx>{`
         .modal-overlay {
           position: fixed;
@@ -709,7 +866,7 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           margin: 0;
         }
         .detail-section {
-          margin-bottom: ${reducePadding ? '24px' : '20px'};
+          margin-bottom: ${config.reducePadding ? '24px' : '20px'};
         }
         .section-title {
           font-size: 1.2rem;
@@ -717,13 +874,13 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           margin-bottom: 8px;
         }
         .detail-item {
-          margin-bottom: ${reducePadding ? '14px' : '12px'};
+          margin-bottom: ${config.reducePadding ? '14px' : '12px'};
         }
         .detail-item:last-child {
           margin-bottom: 0;
         }
         .address-contact-section {
-          margin-top: ${reducePadding ? '13px' : '20px'};
+          margin-top: ${config.reducePadding ? '13px' : '20px'};
         }
         .item-label {
           font-weight: 600;
@@ -821,13 +978,13 @@ export default function RestaurantDetail({ restaurant, savedRec, onClose, onEdit
           font-size: 0.9em;
         }
         .restaurant-detail-content {
-          padding-left: ${reducePadding ? '0px' : '10px'};
-          padding-right: ${reducePadding ? '0px' : '10px'};
+          padding-left: ${config.reducePadding ? '0px' : '10px'};
+          padding-right: ${config.reducePadding ? '0px' : '10px'};
         }
         @media (min-width: 768px) {
           .restaurant-detail-content {
-            padding-left: ${reducePadding ? '0px' : '30px'};
-            padding-right: ${reducePadding ? '0px' : '30px'};
+            padding-left: ${config.reducePadding ? '0px' : '30px'};
+            padding-right: ${config.reducePadding ? '0px' : '30px'};
           }
         }
         

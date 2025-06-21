@@ -355,7 +355,7 @@ export default function UnifiedBottomSheet({
                 onEdit={onEdit}
                 supabase={supabase}
                 session={session}
-                isModal={false} // Important: tells RestaurantDetail it's in a bottom sheet, not a modal
+                mode="full"
               />
             </div>
           )

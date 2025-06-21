@@ -320,8 +320,7 @@ export default function FriendPlacesView({ friend, session, supabase, onClose })
           session={session}
           supabase={supabase}
           onClose={handleCloseRestaurantDetail}
-          isModal={true}
-          viewOnly={true} // Make it read-only since it's a friend's place
+          mode="readonly"
         />
       )}
 
