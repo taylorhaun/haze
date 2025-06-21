@@ -10,6 +10,8 @@ export default function FriendPlacesView({ friend, session, supabase, onClose })
   const [showRestaurantDetail, setShowRestaurantDetail] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
+  const [addPlaceMessage, setAddPlaceMessage] = useState('')
 
   // Categories for filtering (extracted from tags)
   const [categories, setCategories] = useState([
@@ -154,6 +156,52 @@ export default function FriendPlacesView({ friend, session, supabase, onClose })
     setShowRestaurantDetail(false)
     setSelectedPlace(null)
     setSelectedSavedRec(null)
+  }
+
+  const handleAddToMyPlaces = async (restaurant) => {
+    try {
+      console.log('🔄 Adding friend\'s place to my places:', restaurant.name)
+      
+      // Check if user already has this restaurant saved
+      const { data: existingRec, error: checkError } = await supabase
+        .from('saved_recs')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('restaurant_id', restaurant.id)
+        .single()
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError
+      }
+
+      if (existingRec) {
+        setAddPlaceMessage(`You already have "${restaurant.name}" saved!`)
+        setShowAddPlaceModal(true)
+        return
+      }
+
+      // Add the restaurant to user's saved places
+      const { error: insertError } = await supabase
+        .from('saved_recs')
+        .insert({
+          user_id: session.user.id,
+          restaurant_id: restaurant.id,
+          user_notes: '', // Start with empty notes
+          tags: [], // Start with empty tags
+          visibility: 'friends', // Default to friends visibility
+          is_public_tags: false // Default to private tags
+        })
+
+      if (insertError) throw insertError
+
+      setAddPlaceMessage(`✅ Added "${restaurant.name}" to your places!`)
+      setShowAddPlaceModal(true)
+      
+    } catch (err) {
+      console.error('Error adding place to my places:', err)
+      setAddPlaceMessage('Failed to add place to your list. Please try again.')
+      setShowAddPlaceModal(true)
+    }
   }
 
   const formatDate = (dateString) => {
@@ -318,8 +366,76 @@ export default function FriendPlacesView({ friend, session, supabase, onClose })
           session={session}
           supabase={supabase}
           onClose={handleCloseRestaurantDetail}
+          onAddToList={handleAddToMyPlaces}
           mode="readonly"
         />
+      )}
+
+      {/* Add Place Modal */}
+      {showAddPlaceModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 5000,
+          padding: '20px'
+        }} onClick={() => setShowAddPlaceModal(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '300px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '16px'
+            }}>
+              {addPlaceMessage.includes('Failed') ? '❌' : 
+               addPlaceMessage.includes('already') ? '⚠️' : '✅'}
+            </div>
+            <h3 style={{
+              margin: '0 0 8px 0',
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1C1C1E'
+            }}>
+              {addPlaceMessage.includes('Failed') ? 'Failed to Add' : 
+               addPlaceMessage.includes('already') ? 'Already Saved' : 'Added Successfully!'}
+            </h3>
+            <p style={{
+              margin: '0 0 20px 0',
+              fontSize: '16px',
+              color: '#8E8E93',
+              lineHeight: 1.4
+            }}>
+              {addPlaceMessage}
+            </p>
+            <button
+              onClick={() => setShowAddPlaceModal(false)}
+              style={{
+                background: '#007AFF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              {addPlaceMessage.includes('Failed') ? 'Try Again' : 'Got it!'}
+            </button>
+          </div>
+        </div>
       )}
 
       <style>{`

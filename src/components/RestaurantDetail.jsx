@@ -152,9 +152,9 @@ const MODE_CONFIG = {
     showShare: false,
     showEdit: false,
     showDelete: false,
-    showAddButton: false,
+    showAddButton: true,
     isModal: true,
-    reducePadding: false
+    reducePadding: true
   }
 }
 
@@ -835,8 +835,9 @@ export default function RestaurantDetail({
           max-width: 600px;
           max-height: 85vh;
           overflow-y: auto;
+          overflow-x: hidden;
           padding: 20px;
-          padding-bottom: calc(90px + env(safe-area-inset-bottom));
+          padding-bottom: ${config.reducePadding ? 'calc(50px + env(safe-area-inset-bottom))' : 'calc(90px + env(safe-area-inset-bottom))'};
         }
         .detail-header {
           display: flex;
@@ -924,12 +925,12 @@ export default function RestaurantDetail({
           color: white;
         }
         .add-button {
-          background: #10b981;
+          background: #007AFF;
           color: white;
           font-size: 16px;
           padding: 12px 24px;
           width: 100%;
-          margin-bottom: 35px;
+          margin-bottom: ${config.reducePadding ? '20px' : '35px'};
         }
         .delete-confirm {
           margin-top: 20px;

@@ -1,10 +1,30 @@
 -- ============================================
--- COLLABORATIVE LISTS SCHEMA
+-- CLEAN LISTS SCHEMA SETUP
 -- ============================================
--- Extends the existing social features with shared restaurant lists
+-- This version drops existing objects first to avoid conflicts
 
--- 1. COLLABORATIVE LISTS TABLE
-CREATE TABLE IF NOT EXISTS collaborative_lists (
+-- Drop existing objects in correct order (CASCADE will handle dependencies)
+DROP TABLE IF EXISTS collaborative_lists CASCADE;
+DROP TABLE IF EXISTS list_places CASCADE;
+DROP TABLE IF EXISTS list_collaborators CASCADE;
+DROP TABLE IF EXISTS lists CASCADE;
+
+-- Drop existing functions
+DROP FUNCTION IF EXISTS can_user_access_list(UUID, UUID);
+DROP FUNCTION IF EXISTS can_user_edit_list(UUID, UUID);
+DROP FUNCTION IF EXISTS get_list_places(UUID);
+
+-- Drop existing views
+DROP VIEW IF EXISTS user_accessible_lists;
+DROP VIEW IF EXISTS list_details;
+
+-- ============================================
+-- LISTS SCHEMA
+-- ============================================
+-- Extends the existing social features with restaurant lists (both private and collaborative)
+
+-- 1. LISTS TABLE
+CREATE TABLE IF NOT EXISTS lists (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   description TEXT,
@@ -14,14 +34,14 @@ CREATE TABLE IF NOT EXISTS collaborative_lists (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Indexes for collaborative lists
-CREATE INDEX IF NOT EXISTS idx_collaborative_lists_owner ON collaborative_lists(owner_id);
-CREATE INDEX IF NOT EXISTS idx_collaborative_lists_public ON collaborative_lists(is_public);
+-- Indexes for lists
+CREATE INDEX IF NOT EXISTS idx_lists_owner ON lists(owner_id);
+CREATE INDEX IF NOT EXISTS idx_lists_public ON lists(is_public);
 
 -- 2. LIST COLLABORATORS TABLE
 CREATE TABLE IF NOT EXISTS list_collaborators (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  list_id UUID REFERENCES collaborative_lists(id) ON DELETE CASCADE,
+  list_id UUID REFERENCES lists(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   role VARCHAR(20) DEFAULT 'collaborator', -- 'collaborator', 'viewer'
   invited_by UUID REFERENCES auth.users(id),
@@ -36,10 +56,10 @@ CREATE INDEX IF NOT EXISTS idx_list_collaborators_list ON list_collaborators(lis
 CREATE INDEX IF NOT EXISTS idx_list_collaborators_user ON list_collaborators(user_id);
 
 -- 3. LIST PLACES TABLE
--- Links restaurants to collaborative lists
+-- Links restaurants to lists
 CREATE TABLE IF NOT EXISTS list_places (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  list_id UUID REFERENCES collaborative_lists(id) ON DELETE CASCADE,
+  list_id UUID REFERENCES lists(id) ON DELETE CASCADE,
   restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
   added_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   notes TEXT, -- Collaborator's notes about this place on this list
@@ -61,31 +81,31 @@ CREATE INDEX IF NOT EXISTS idx_list_places_added_by ON list_places(added_by);
 -- View: User's accessible lists (owned or collaborating)
 CREATE OR REPLACE VIEW user_accessible_lists AS
 SELECT 
-  cl.*,
+  l.*,
   'owner' as user_role
-FROM collaborative_lists cl
-WHERE cl.owner_id = auth.uid()
+FROM lists l
+WHERE l.owner_id = auth.uid()
 UNION
 SELECT 
-  cl.*,
+  l.*,
   lc.role as user_role
-FROM collaborative_lists cl
-JOIN list_collaborators lc ON cl.id = lc.list_id
+FROM lists l
+JOIN list_collaborators lc ON l.id = lc.list_id
 WHERE lc.user_id = auth.uid();
 
 -- View: List details with collaborator count
 CREATE OR REPLACE VIEW list_details AS
 SELECT 
-  cl.*,
+  l.*,
   p.display_name as owner_name,
   p.username as owner_username,
   COUNT(DISTINCT lc.user_id) as collaborator_count,
   COUNT(DISTINCT lp.restaurant_id) as place_count
-FROM collaborative_lists cl
-LEFT JOIN profiles p ON cl.owner_id = p.id
-LEFT JOIN list_collaborators lc ON cl.id = lc.list_id
-LEFT JOIN list_places lp ON cl.id = lp.list_id
-GROUP BY cl.id, p.display_name, p.username;
+FROM lists l
+LEFT JOIN profiles p ON l.owner_id = p.id
+LEFT JOIN list_collaborators lc ON l.id = lc.list_id
+LEFT JOIN list_places lp ON l.id = lp.list_id
+GROUP BY l.id, p.display_name, p.username;
 
 -- ============================================
 -- HELPER FUNCTIONS
@@ -96,7 +116,7 @@ CREATE OR REPLACE FUNCTION can_user_access_list(list_uuid UUID, user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS(
-    SELECT 1 FROM collaborative_lists 
+    SELECT 1 FROM lists 
     WHERE id = list_uuid 
     AND (
       owner_id = user_uuid 
@@ -115,7 +135,7 @@ CREATE OR REPLACE FUNCTION can_user_edit_list(list_uuid UUID, user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS(
-    SELECT 1 FROM collaborative_lists 
+    SELECT 1 FROM lists 
     WHERE id = list_uuid 
     AND (
       owner_id = user_uuid 
@@ -180,12 +200,12 @@ $$ LANGUAGE plpgsql;
 -- ============================================
 
 -- Enable RLS
-ALTER TABLE collaborative_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE list_collaborators ENABLE ROW LEVEL SECURITY;
 ALTER TABLE list_places ENABLE ROW LEVEL SECURITY;
 
--- Collaborative Lists Policies
-CREATE POLICY "Users can view accessible lists" ON collaborative_lists
+-- Lists Policies
+CREATE POLICY "Users can view accessible lists" ON lists
   FOR SELECT USING (
     owner_id = auth.uid() 
     OR is_public = true
@@ -195,14 +215,14 @@ CREATE POLICY "Users can view accessible lists" ON collaborative_lists
     )
   );
 
-CREATE POLICY "Users can manage their own lists" ON collaborative_lists
+CREATE POLICY "Users can manage their own lists" ON lists
   FOR ALL USING (owner_id = auth.uid());
 
 -- List Collaborators Policies
 CREATE POLICY "Users can view collaborators of accessible lists" ON list_collaborators
   FOR SELECT USING (
     list_id IN (
-      SELECT id FROM collaborative_lists 
+      SELECT id FROM lists 
       WHERE owner_id = auth.uid() 
       OR is_public = true
       OR id IN (
@@ -215,7 +235,7 @@ CREATE POLICY "Users can view collaborators of accessible lists" ON list_collabo
 CREATE POLICY "List owners can manage collaborators" ON list_collaborators
   FOR ALL USING (
     list_id IN (
-      SELECT id FROM collaborative_lists 
+      SELECT id FROM lists 
       WHERE owner_id = auth.uid()
     )
   );
@@ -224,7 +244,7 @@ CREATE POLICY "List owners can manage collaborators" ON list_collaborators
 CREATE POLICY "Users can view places in accessible lists" ON list_places
   FOR SELECT USING (
     list_id IN (
-      SELECT id FROM collaborative_lists 
+      SELECT id FROM lists 
       WHERE owner_id = auth.uid() 
       OR is_public = true
       OR id IN (
@@ -237,7 +257,7 @@ CREATE POLICY "Users can view places in accessible lists" ON list_places
 CREATE POLICY "Collaborators can add places to lists" ON list_places
   FOR INSERT WITH CHECK (
     list_id IN (
-      SELECT id FROM collaborative_lists 
+      SELECT id FROM lists 
       WHERE owner_id = auth.uid()
     )
     OR
@@ -256,7 +276,7 @@ CREATE POLICY "List owners and place adders can delete places" ON list_places
     added_by = auth.uid()
     OR
     list_id IN (
-      SELECT id FROM collaborative_lists 
+      SELECT id FROM lists 
       WHERE owner_id = auth.uid()
     )
   );
@@ -267,35 +287,4 @@ CREATE POLICY "List owners and place adders can delete places" ON list_places
 
 GRANT EXECUTE ON FUNCTION can_user_access_list(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION can_user_edit_list(UUID, UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION get_list_places(UUID) TO authenticated;
-
--- ============================================
--- EXAMPLE USAGE
--- ============================================
-
-/*
--- Create a collaborative list
-INSERT INTO collaborative_lists (name, description, owner_id)
-VALUES ('Date Night Spots', 'Special places for romantic dinners', auth.uid());
-
--- Add a collaborator (friend)
-INSERT INTO list_collaborators (list_id, user_id, role, invited_by)
-VALUES (
-  (SELECT id FROM collaborative_lists WHERE name = 'Date Night Spots' LIMIT 1),
-  'friend-user-id-here',
-  'collaborator',
-  auth.uid()
-);
-
--- Add a restaurant to the list
-INSERT INTO list_places (list_id, restaurant_id, added_by, notes)
-VALUES (
-  (SELECT id FROM collaborative_lists WHERE name = 'Date Night Spots' LIMIT 1),
-  'restaurant-id-here',
-  auth.uid(),
-  'Amazing pasta and great atmosphere!'
-);
-
--- Get all places in a list
-SELECT * FROM get_list_places('list-id-here');
-*/ 
+GRANT EXECUTE ON FUNCTION get_list_places(UUID) TO authenticated; 
